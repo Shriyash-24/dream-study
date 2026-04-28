@@ -1,0 +1,3403 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Dream Study</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@300;400;500;600&display=swap" rel="stylesheet" />
+
+  <style>
+    :root {
+      --bg:          #04050d;
+      --surface:     #101429;
+      --surface-2:   #171d35;
+      --border:      rgba(128,181,255,0.18);
+      --border-hi:   rgba(129,211,255,0.55);
+      --gold:        #ffd36b;
+      --gold-bright: #fff3b0;
+      --gold-dim:    #8ca9ff;
+      --gold-glow:   rgba(255,211,107,0.22);
+      --text:        #dbe4f3;
+      --text-sub:    #b8c8e9;
+      --text-dim:    #859dcd;
+      --red:         #b85248;
+      --green:       #4e9460;
+      --font:        'Manrope', system-ui, sans-serif;
+      --mono:        'JetBrains Mono', monospace;
+      --radius-lg:   18px;
+      --radius-md:   14px;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    html, body {
+      height: 100vh;
+      overflow: hidden;
+      background:
+        radial-gradient(circle at 15% 20%, rgba(121,229,255,0.13) 0%, transparent 36%),
+        radial-gradient(circle at 80% 85%, rgba(148,102,255,0.18) 0%, transparent 42%),
+        linear-gradient(135deg, #050814 0%, #060713 40%, #0b1130 100%);
+      color: var(--text);
+      font-family: var(--font);
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* Noise grain — keeps the dark background alive */
+    body::before {
+      content: '';
+      position: fixed; inset: 0;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='250' height='250'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='250' height='250' filter='url(%23n)' opacity='1'/%3E%3C/svg%3E");
+      opacity: 0.022;
+      pointer-events: none;
+      z-index: 9999;
+    }
+
+    /* Ambient glow behind timer */
+    body::after {
+      content: '';
+      position: fixed;
+      top: 55%; left: 25%;
+      transform: translate(-50%, -50%);
+      width: 500px; height: 500px;
+      background: radial-gradient(ellipse, rgba(196,162,70,0.028) 0%, transparent 65%);
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    /* ─── App grid: header · countdown strip · main ─────────── */
+    .app {
+      height: 100vh;
+      display: grid;
+      grid-template-rows: 78px 1fr;
+      position: relative;
+      z-index: 1;
+      animation: fadeUp 0.55s ease both;
+    }
+    .app.no-countdown { grid-template-rows: 1fr; }
+    .app.no-countdown .cd-strip { display: none; }
+    .app.no-countdown .main { grid-row: 1; }
+
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(8px); }
+      to   { opacity: 1; transform: none; }
+    }
+
+    /* ── Countdown Strip — dedicated full-width row ─────────── */
+    /*
+       Moved out of the header so it can breathe and be read at a glance.
+       This is the main motivational anchor: every glance = time pressure = action.
+    */
+    .cd-strip {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0;
+      border-bottom: 1px solid var(--border);
+      background: linear-gradient(90deg, rgba(110,151,255,0.14), rgba(121,229,255,0.1), rgba(126,99,255,0.12));
+      box-shadow: 0 8px 24px rgba(10, 16, 40, 0.55);
+      position: relative;
+    }
+
+    /* Thin gold line at top of strip for visual weight */
+    .cd-strip::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 1px;
+      background: linear-gradient(90deg, transparent 0%, rgba(196,162,70,0.18) 30%, rgba(196,162,70,0.18) 70%, transparent 100%);
+    }
+
+    .cd-label {
+      font-size: 0.74rem;
+      font-weight: 800;
+      letter-spacing: 0.22em;
+      text-transform: uppercase;
+      color: var(--gold-dim);
+      margin-right: 22px;
+    }
+
+    .cd-units {
+      display: flex;
+      align-items: center;
+      gap: 2px;
+    }
+
+    .cd-unit {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 3px;
+      padding: 0 10px;
+    }
+
+    .cd-num {
+      font-family: var(--mono);
+      font-size: 2.8rem;
+      font-weight: 600;
+      color: var(--gold-bright);
+      line-height: 1;
+      font-variant-numeric: tabular-nums;
+      min-width: 2ch;
+      text-align: center;
+      text-shadow: 0 0 18px rgba(255, 238, 173, 0.28);
+    }
+
+    .cd-lbl {
+      font-size: 0.62rem;
+      font-weight: 800;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+      color: var(--text-dim);
+    }
+
+    .cd-sep {
+      font-family: var(--mono);
+      font-size: 1.5rem;
+      color: var(--gold-dim);
+      opacity: 0.35;
+      margin-bottom: 14px;
+      padding: 0 2px;
+    }
+
+    .cd-gate-label {
+      margin-left: 22px;
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+      align-items: flex-end;
+      position: relative;
+      padding-right: 34px;
+    }
+
+    .cd-gate-title {
+      font-size: 0.76rem;
+      font-weight: 800;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: var(--gold-dim);
+    }
+
+    .cd-gate-date {
+      font-size: 0.62rem;
+      font-weight: 600;
+      letter-spacing: 0.1em;
+      color: var(--text-dim);
+    }
+
+    /* ── Main: two panels split by 1px divider ──────────────── */
+    .main {
+      display: grid;
+      grid-template-columns: 1fr 1px 390px;
+      overflow: hidden;
+      min-height: 0;
+      position: relative;
+      transition: grid-template-columns 0.35s ease;
+    }
+    .main.right-collapsed { grid-template-columns: 1fr 0 0; }
+
+    .v-div { background: var(--border); align-self: stretch; }
+    .main.right-collapsed .v-div { opacity: 0; }
+
+    /* ── LEFT PANEL ──────────────────────────────────────────── */
+    .left {
+      display: flex;
+      flex-direction: column;
+      align-items: stretch;
+      justify-content: flex-start;
+      padding: 22px 44px 28px;
+      overflow: hidden;
+      margin-top: 0;
+    }
+    .main-view-switch {
+      display: flex;
+      justify-content: center;
+      gap: 8px;
+      margin: 18px 0 16px;
+      border: 1px solid rgba(129,211,255,0.22);
+      background: linear-gradient(120deg, rgba(17,24,48,0.58), rgba(13,19,38,0.42));
+      backdrop-filter: blur(10px);
+      border-radius: 999px;
+      padding: 6px;
+      box-shadow: inset 0 1px 0 rgba(255,255,255,0.05), 0 10px 26px rgba(0,0,0,0.28);
+      width: fit-content;
+      align-self: center;
+    }
+    .main-view-btn {
+      font-family: var(--font);
+      font-size: 0.68rem;
+      font-weight: 800;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      padding: 10px 16px;
+      border-radius: 999px;
+      border: 1px solid transparent;
+      color: rgba(214,229,255,0.8);
+      background: transparent;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+    .main-view-btn.active {
+      border-color: rgba(129,211,255,0.5);
+      color: #ecf8ff;
+      background: linear-gradient(120deg, rgba(99,152,255,0.5), rgba(102,216,255,0.34));
+      box-shadow: 0 4px 18px rgba(81,141,255,0.35);
+    }
+    .main-view {
+      display: none;
+      min-height: 0;
+      height: 100%;
+    }
+    .main-view.active {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+    }
+
+    /* Quote — the heart of this page */
+    .quote-wrap {
+      width: 100%;
+      text-align: center;
+      margin-bottom: 28px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 0;
+      position: relative;
+      padding: 14px 18px;
+    }
+
+    /* Decorative large opening quote mark */
+    .quote-wrap::before {
+      content: '\201C';
+      position: absolute;
+      top: -4px; left: 50%;
+      transform: translateX(-50%);
+      font-size: 5rem;
+      font-family: Georgia, serif;
+      line-height: 1;
+      color: rgba(196,162,70,0.08);
+      pointer-events: none;
+      user-select: none;
+    }
+
+    /* Subtle gold frame lines left and right */
+    .quote-wrap::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      border-left: 1px solid rgba(196,162,70,0.07);
+      border-right: 1px solid rgba(196,162,70,0.07);
+      border-radius: 10px;
+      pointer-events: none;
+    }
+
+    .qt {
+      font-size: 1.15rem;
+      font-weight: 600;
+      font-style: italic;
+      color: var(--text);
+      line-height: 1.3;
+      max-width: min(92%, 900px);
+      opacity: 0;
+      transition: opacity 0.8s ease;
+      letter-spacing: 0.01em;
+      position: relative;
+      z-index: 1;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .qt.show { opacity: 1; }
+
+    .qs {
+      font-size: 0.6rem;
+      font-weight: 700;
+      letter-spacing: 0.22em;
+      text-transform: uppercase;
+      color: var(--gold-dim);
+      opacity: 0;
+      transition: opacity 0.8s ease 0.15s;
+      margin-top: 14px;
+      position: relative;
+      z-index: 1;
+    }
+
+    .qs.show { opacity: 1; }
+
+    /* Gold dot divider between quote and attribution */
+    .qs::before {
+      content: '· ';
+      color: rgba(196,162,70,0.3);
+      letter-spacing: 0.05em;
+    }
+
+    .rule {
+      width: 40px;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, rgba(196,162,70,0.25), transparent);
+      margin: 0 auto 22px;
+    }
+
+    /* ── THE TIMER — as big as it can be ───────────────────────
+       Large font = high information density at a glance.
+       Every second that passes is visible and motivating.
+    */
+    .timer-block { text-align: center; width: 100%; }
+
+    .timer-num {
+      font-family: var(--mono);
+      font-size: clamp(5rem, 12vw, 8.4rem);
+      font-weight: 500;
+      letter-spacing: 0.02em;
+      color: #e6dcc0;
+      line-height: 1;
+      font-variant-numeric: tabular-nums;
+      transition: color 0.3s, opacity 0.3s;
+      text-shadow:
+        0 0 3px rgba(230, 220, 192, 0.09),
+        0 0 9px rgba(121, 229, 255, 0.05);
+    }
+
+    /* Paused state — blink the timer, clear signal that it's not running */
+    @keyframes timerBlink {
+      0%, 100% { opacity: 0.5; }
+      50%       { opacity: 0.12; }
+    }
+
+    .timer-num.paused {
+      color: var(--text-dim);
+      opacity: 0.5;
+      animation: timerBlink 1.1s ease-in-out infinite;
+      /* Disable transition so it doesn't fight the animation */
+      transition: color 0.3s;
+    }
+
+    /* Breathing underline — only on when session is running */
+    .timer-line {
+      height: 1px;
+      width: 0;
+      background: linear-gradient(90deg, transparent, var(--gold), transparent);
+      margin: 8px auto 0;
+      opacity: 0;
+      transition: width 0.55s ease, opacity 0.4s;
+    }
+
+    .timer-line.on {
+      width: 56%;
+      opacity: 1;
+      animation: breathe 2.4s ease-in-out infinite;
+    }
+
+    @keyframes breathe {
+      0%, 100% { opacity: 0.3; }
+      50%       { opacity: 1; }
+    }
+
+    /* "Started at 9:15 AM" — contextual session info */
+    .timer-meta {
+      font-size: 0.9rem;
+      font-weight: 700;
+      color: var(--text);
+      letter-spacing: 0.04em;
+      text-align: center;
+      height: 16px;
+      margin: 12px 0 18px;
+    }
+
+    /* ── Buttons — bigger for easier interaction ────────────── */
+    .btn-row { display: flex; gap: 10px; }
+
+    .btn {
+      font-family: var(--font);
+      font-size: 0.88rem;
+      font-weight: 800;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      padding: 13px 30px;
+      border-radius: 10px;
+      border: 1px solid;
+      cursor: pointer;
+      background: transparent;
+      transition: background 0.16s, border-color 0.16s, color 0.16s, transform 0.1s;
+      white-space: nowrap;
+      min-width: 90px;
+    }
+
+    .btn:active  { transform: scale(0.95); }
+    .btn:disabled { opacity: 0.16; cursor: not-allowed; pointer-events: none; }
+
+    .btn-start {
+      border-color: #79e5ff;
+      color: #d8fcff;
+      background: linear-gradient(135deg, rgba(89,214,255,0.22), rgba(121,129,255,0.18));
+      box-shadow: 0 10px 20px rgba(32, 86, 133, 0.35);
+    }
+    .btn-start:hover { background: linear-gradient(135deg, rgba(89,214,255,0.4), rgba(121,129,255,0.34)); }
+
+    .btn-pause { border-color: rgba(141,170,255,0.35); color: var(--text); background: rgba(141,170,255,0.14); }
+    .btn-pause:hover { border-color: rgba(141,170,255,0.8); color: #ffffff; background: rgba(141,170,255,0.25); }
+
+    .btn-stop  { border-color: rgba(184,82,72,0.28); color: rgba(184,82,72,0.6); }
+    .btn-stop:hover  { border-color: var(--red); color: var(--red); background: rgba(184,82,72,0.06); }
+
+    /* ── Session end card — the reward moment ────────────────── */
+    .sess-card {
+      margin-top: 20px;
+      padding: 14px 18px;
+      border: 1px solid rgba(129,211,255,0.26);
+      background: linear-gradient(135deg, rgba(37,105,92,0.34) 0%, rgba(38,92,132,0.28) 52%, rgba(28,54,102,0.24) 100%);
+      border-radius: 14px;
+      text-align: center;
+      width: 100%;
+      max-width: 440px;
+      opacity: 0;
+      transform: translateY(10px) scale(0.98);
+      transition: opacity 0.5s ease, transform 0.5s ease;
+      pointer-events: none;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .sess-card::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, rgba(129,211,255,0.7), transparent);
+    }
+
+    .sess-card::after {
+      content: '';
+      position: absolute;
+      bottom: -20px; left: 50%;
+      transform: translateX(-50%);
+      width: 180px; height: 50px;
+      background: radial-gradient(ellipse, rgba(121,229,255,0.12) 0%, transparent 70%);
+      pointer-events: none;
+    }
+
+    .sess-card.show {
+      opacity: 1;
+      transform: translateY(0) scale(1);
+      pointer-events: auto;
+    }
+
+    .sc-lbl {
+      font-size: 0.56rem;
+      font-weight: 700;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: #c5e8ff;
+      margin-bottom: 8px;
+    }
+
+    .sc-dur {
+      font-family: var(--mono);
+      font-size: 1.6rem;
+      font-weight: 600;
+      color: #e8f6ff;
+      line-height: 1;
+      letter-spacing: 0.02em;
+      margin-bottom: 6px;
+    }
+
+    .sc-dur-label {
+      font-size: 0.52rem;
+      font-weight: 700;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: #9fc4e9;
+      margin-bottom: 8px;
+    }
+
+    .sc-body {
+      font-size: 0.8rem;
+      font-weight: 600;
+      color: #d4ebff;
+      line-height: 1.4;
+      padding-top: 8px;
+      border-top: 1px solid rgba(129,211,255,0.2);
+    }
+
+    /* ── RIGHT PANEL ─────────────────────────────────────────── */
+    .right {
+      display: flex;
+      flex-direction: column;
+      padding: 14px 14px 14px;
+      overflow-y: auto;
+      overflow-x: hidden;
+      min-height: 0;
+      gap: 10px;
+      background: linear-gradient(180deg, rgba(11,14,30,0.72), rgba(10,12,26,0.5));
+      backdrop-filter: blur(8px);
+      scrollbar-width: thin;
+      scrollbar-color: rgba(129,211,255,0.2) transparent;
+      transition: opacity 0.3s ease, transform 0.35s ease;
+    }
+    .main.right-collapsed .right {
+      opacity: 0;
+      transform: translateX(24px);
+      pointer-events: none;
+    }
+    .rp-toggle {
+      position: absolute;
+      right: 390px;
+      top: 50%;
+      transform: translateY(-50%);
+      z-index: 5;
+      width: 30px;
+      height: 46px;
+      border-radius: 999px;
+      border: 1px solid rgba(129,211,255,0.28);
+      background: linear-gradient(140deg, rgba(20,30,56,0.92), rgba(10,16,34,0.85));
+      color: #d6e9ff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: right 0.35s ease, transform 0.2s ease, background 0.2s ease;
+    }
+    .rp-toggle:hover { background: linear-gradient(140deg, rgba(28,42,76,0.95), rgba(14,23,46,0.9)); }
+    .rp-toggle:active { transform: translateY(-50%) scale(0.96); }
+    .main.right-collapsed .rp-toggle { right: 10px; }
+    .right::-webkit-scrollbar { width: 6px; }
+    .right::-webkit-scrollbar-track { background: transparent; }
+    .right::-webkit-scrollbar-thumb { background: rgba(129,211,255,0.2); border-radius: 10px; }
+
+    .r-section {
+      border: 1px solid rgba(129,211,255,0.15);
+      background: linear-gradient(145deg, rgba(15,22,44,0.8), rgba(15,19,35,0.58));
+      border-radius: var(--radius-lg);
+      padding: 11px 11px 10px;
+      box-shadow: inset 0 1px 0 rgba(255,255,255,0.02), 0 10px 24px rgba(0,0,0,0.2);
+    }
+    .r-section.tight { padding-top: 9px; padding-bottom: 8px; }
+    .r-section-title {
+      font-size: 0.56rem;
+      font-weight: 800;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: rgba(197,213,255,0.85);
+      margin-bottom: 8px;
+    }
+    .rp-tabs {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 6px;
+      margin-bottom: 2px;
+    }
+    .rp-tab {
+      border: 1px solid rgba(129,211,255,0.18);
+      background: rgba(18,24,47,0.5);
+      color: rgba(197,213,255,0.75);
+      font-family: var(--font);
+      font-size: 0.58rem;
+      font-weight: 800;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+      border-radius: 999px;
+      padding: 8px 10px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+    .rp-tab:hover { border-color: rgba(129,211,255,0.42); color: var(--text); }
+    .rp-tab.active {
+      background: linear-gradient(120deg, rgba(73,135,255,0.28), rgba(99,176,255,0.2));
+      border-color: rgba(129,211,255,0.5);
+      color: #eaf4ff;
+      box-shadow: 0 4px 14px rgba(58,99,168,0.3);
+    }
+    .r-panel { display: none; }
+    .r-panel.active {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      min-height: 0;
+    }
+
+    .panel-lbl {
+      font-size: 0.62rem;
+      font-weight: 700;
+      letter-spacing: 0.24em;
+      text-transform: uppercase;
+      color: var(--gold-dim);
+      margin-bottom: 10px;
+    }
+
+    /* ── Stats: one row per stat, full width ────────────────────
+       Changed from 3-column grid to single column.
+       Each card is now a horizontal row: label on left, value on right.
+       Reason: easier to scan, no cramped 3-column layout, matches
+       natural reading direction (label → value).
+    */
+    .stats {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      margin-bottom: 0;
+    }
+
+    .scard {
+      background: linear-gradient(120deg, var(--surface), var(--surface-2));
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      padding: 11px 14px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      transition: border-color 0.2s;
+    }
+
+    .scard:hover { border-color: var(--border-hi); }
+
+    .sl {
+      font-size: 0.68rem;
+      font-weight: 800;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--text-sub);
+    }
+
+    .sv {
+      font-family: var(--mono);
+      font-size: 1.25rem;
+      font-weight: 700;
+      color: var(--gold-bright);
+      font-variant-numeric: tabular-nums;
+    }
+    /* Status badge — DEAD CSS removed (element no longer exists) */
+
+    /* Today's sessions list */
+    .log-sep {
+      height: 1px;
+      background: linear-gradient(90deg, transparent, rgba(129,211,255,0.35), transparent);
+      margin: 10px 0 10px;
+    }
+
+    .log-hdr {
+      font-size: 0.58rem;
+      font-weight: 700;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: var(--text-sub);
+      margin-bottom: 5px;
+    }
+
+    .log-list {
+      max-height: 200px;
+      overflow-y: auto;
+      scrollbar-width: thin;
+      scrollbar-color: rgba(196,162,70,0.12) transparent;
+    }
+
+    .log-list::-webkit-scrollbar { width: 3px; }
+    .log-list::-webkit-scrollbar-track { background: transparent; }
+    .log-list::-webkit-scrollbar-thumb { background: rgba(196,162,70,0.14); border-radius: 2px; }
+
+    .log-row:last-child { border-bottom: none; }
+
+    .log-time {
+      font-size: 0.75rem;
+      font-weight: 400;
+      color: var(--text-sub);
+    }
+
+    .log-dur {
+      font-family: var(--mono);
+      font-size: 0.73rem;
+      font-weight: 500;
+      color: var(--gold);
+    }
+
+    .log-empty {
+      font-size: 0.78rem;
+      font-weight: 300;
+      font-style: italic;
+      color: var(--text-dim);
+      text-align: center;
+      padding: 18px 0;
+      line-height: 1.6;
+    }
+    /* ── "RIGHT NOW" schedule block ─────────────────────────────
+       Live indicator of current schedule block. Updates every 30s.
+       Study blocks glow gold; seva/break blocks are dim.
+       Most useful feature for staying on the daily schedule.
+    */
+    .now-wrap {
+      background: linear-gradient(145deg, rgba(20,28,56,0.86), rgba(16,22,43,0.7));
+      border: 1px solid rgba(129,211,255,0.18);
+      border-radius: var(--radius-lg);
+      padding: 11px 12px 10px;
+      margin-bottom: 0;
+      position: relative;
+      overflow: hidden;
+      transition: border-color 0.4s;
+    }
+    .now-wrap.study-block {
+      border-color: rgba(196,162,70,0.28);
+      background: linear-gradient(135deg, rgba(196,162,70,0.04), var(--surface));
+    }
+    /* Gold top shimmer on study blocks */
+    .now-wrap.study-block::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0; height: 1px;
+      background: linear-gradient(90deg, transparent, rgba(196,162,70,0.45), transparent);
+    }
+    .now-top {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 6px;
+    }
+    .now-label {
+      font-size: 0.55rem;
+      font-weight: 700;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      color: var(--text-dim);
+    }
+    .now-block-name {
+      font-size: 0.78rem;
+      font-weight: 600;
+      color: var(--text-sub);
+      line-height: 1.3;
+      margin-bottom: 5px;
+    }
+    .now-wrap.study-block .now-block-name {
+      color: var(--gold);
+    }
+    .now-bottom {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 5px;
+    }
+    .now-time-left {
+      font-family: var(--mono);
+      font-size: 0.65rem;
+      font-weight: 500;
+      color: var(--text-dim);
+      font-variant-numeric: tabular-nums;
+    }
+    .now-wrap.study-block .now-time-left { color: var(--gold-dim); }
+    .now-next {
+      font-size: 0.5rem;
+      font-weight: 600;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--text-dim);
+      opacity: 0.7;
+    }
+    .now-progress {
+      height: 2px;
+      background: rgba(196,162,70,0.07);
+      border-radius: 1px;
+      overflow: hidden;
+    }
+    .now-progress-fill {
+      height: 100%;
+      background: rgba(196,162,70,0.25);
+      border-radius: 1px;
+      transition: width 1s linear;
+    }
+    .now-wrap.study-block .now-progress-fill {
+      background: linear-gradient(90deg, var(--gold-dim), var(--gold));
+    }
+
+    /* ── 7-Day Heatmap ───────────────────────────────────────────
+       Mon–Sun boxes for current week.
+       Fill = % of daily goal achieved. Turns gold at 100%.
+       Shows consistency at a glance — the most honest mirror.
+    */
+    .heat-hdr {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 6px;
+    }
+    .heat-label {
+      font-size: 0.55rem;
+      font-weight: 700;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      color: var(--text-dim);
+    }
+    .heat-week-total {
+      font-family: var(--mono);
+      font-size: 0.55rem;
+      color: var(--gold-dim);
+    }
+    .heatmap {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      gap: 4px;
+      margin-bottom: 3px;
+    }
+    .heat-day {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
+    }
+    .heat-box {
+      width: 100%;
+      aspect-ratio: 1;
+      border-radius: 10px;
+      background: rgba(196,162,70,0.05);
+      border: 1px solid rgba(196,162,70,0.07);
+      position: relative;
+      overflow: hidden;
+      transition: background 0.4s, border-color 0.4s;
+    }
+    /* Today indicator — ring */
+    .heat-box.today {
+      border-color: rgba(196,162,70,0.35);
+    }
+    .heat-fill {
+      position: absolute;
+      bottom: 0; left: 0; right: 0;
+      background: linear-gradient(180deg, rgba(196,162,70,0.5), rgba(196,162,70,0.2));
+      transition: height 0.6s ease;
+    }
+    .heat-fill.full {
+      background: linear-gradient(180deg, var(--gold), var(--gold-dim));
+    }
+    .heat-day-lbl {
+      font-size: 0.44rem;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: var(--text-dim);
+    }
+    .heat-day-lbl.today { color: var(--gold-dim); }
+
+    /* ── Daily goal progress bar ─────────────────────────────────
+       Shows progress toward 11-hour daily goal.
+       Thin bar with fill + percentage — instant visual feedback.
+    */
+    .goal-wrap {
+      margin-bottom: 10px;
+    }
+    .goal-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 5px;
+    }
+    .goal-label {
+      font-size: 0.55rem;
+      font-weight: 700;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: var(--text-dim);
+    }
+    .goal-pct {
+      font-family: var(--mono);
+      font-size: 0.58rem;
+      font-weight: 600;
+      color: var(--gold-dim);
+      font-variant-numeric: tabular-nums;
+    }
+    .goal-bar {
+      height: 3px;
+      background: rgba(196,162,70,0.08);
+      border-radius: 10px;
+      overflow: hidden;
+    }
+    .goal-fill {
+      height: 100%;
+      background: linear-gradient(90deg, var(--gold-dim), var(--gold-bright));
+      border-radius: 10px;
+      transition: width 1s ease;
+      width: 0%;
+    }
+    .goal-fill.done {
+      background: linear-gradient(90deg, #4e9460, #60c478);
+    }
+
+    /* ── Keyboard shortcut hint ──────────────────────────────────
+       Shown below buttons. Reminds user of shortcuts after 1st use.
+       Very subtle — just for discoverability.
+    */
+    .kb-hint {
+      margin-top: 10px;
+      font-size: 0.7rem;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      color: var(--text-sub);
+      text-align: center;
+      opacity: 0.95;
+    }
+    .kb-hint kbd {
+      font-family: var(--mono);
+      font-size: 0.5rem;
+      background: rgba(196,162,70,0.07);
+      border: 1px solid rgba(196,162,70,0.12);
+      border-radius: 10px;
+      padding: 1px 4px;
+      color: var(--text-sub);
+    }
+
+
+    .brand-credit {
+      margin-top: auto;
+      padding: 10px 4px 2px;
+      font-size: 0.58rem;
+      font-weight: 500;
+      letter-spacing: 0.04em;
+      color: rgba(184,200,232,0.56);
+      text-align: center;
+      opacity: 0.74;
+    }
+    .brand-credit a {
+      color: inherit;
+      text-decoration: none;
+      border-bottom: 1px solid rgba(184,200,232,0.2);
+      transition: color 0.2s ease, border-color 0.2s ease;
+    }
+    .brand-credit a:hover {
+      color: rgba(222,236,255,0.88);
+      border-bottom-color: rgba(222,236,255,0.38);
+    }
+
+    /* ── Break reminder toast ────────────────────────────────────
+       Appears after 90 min of unbroken study. Gentle nudge.
+       Auto-dismisses after 10 seconds. Non-intrusive.
+    */
+    .break-toast {
+      position: fixed;
+      bottom: 28px;
+      left: 50%;
+      transform: translateX(-50%) translateY(20px);
+      background: linear-gradient(135deg, var(--surface), rgba(196,162,70,0.06));
+      border: 1px solid rgba(196,162,70,0.2);
+      border-radius: 4px;
+      padding: 12px 20px;
+      text-align: center;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.4s ease, transform 0.4s ease;
+      z-index: 100;
+      min-width: 320px;
+      max-width: 440px;
+    }
+    .break-toast::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0; height: 1px;
+      background: linear-gradient(90deg, transparent, rgba(196,162,70,0.5), transparent);
+    }
+    .break-toast.show {
+      opacity: 1;
+      transform: translateX(-50%) translateY(0);
+      pointer-events: auto;
+    }
+    .bt-icon {
+      font-size: 1.1rem;
+      margin-bottom: 4px;
+    }
+    .bt-title {
+      font-size: 0.62rem;
+      font-weight: 700;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+      color: var(--gold);
+      margin-bottom: 4px;
+    }
+    .bt-msg {
+      font-size: 0.74rem;
+      font-weight: 300;
+      font-style: italic;
+      color: var(--text-sub);
+      line-height: 1.5;
+      margin-bottom: 8px;
+    }
+    .bt-dismiss {
+      font-size: 0.5rem;
+      font-weight: 700;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: var(--text-dim);
+      cursor: pointer;
+      background: none;
+      border: none;
+      font-family: var(--font);
+      padding: 0;
+    }
+    .bt-dismiss:hover { color: var(--text-sub); }
+
+    /* ── Session discard button ──────────────────────────────────*/
+    .log-row {
+      display: grid;
+      grid-template-columns: 1fr auto auto;
+      align-items: center;
+      padding: 6px 0;
+      border-bottom: 1px solid rgba(196,162,70,0.05);
+      gap: 0 10px;
+    }
+    .log-discard {
+      flex-shrink: 0;
+      background: none;
+      border: 1px solid rgba(184,82,72,0.18);
+      border-radius: 10px;
+      color: rgba(184,82,72,0.45);
+      font-size: 0.6rem;
+      cursor: pointer;
+      padding: 2px 5px;
+      line-height: 1;
+      transition: border-color 0.15s, color 0.15s;
+      font-family: var(--mono);
+    }
+    .log-discard:hover { border-color: var(--red); color: var(--red); }
+
+    /* ── Discard live session button ─────────────────────────────*/
+    .btn-discard {
+      border-color: rgba(184,82,72,0.22);
+      color: rgba(184,82,72,0.5);
+    }
+    .btn-discard:hover { border-color: var(--red); color: var(--red); background: rgba(184,82,72,0.05); }
+
+    /* ── Add Hours modal (reuses export-modal base) ─────────────*/
+    .add-hours-modal {
+      position: fixed;
+      inset: 0;
+      z-index: 200;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: rgba(6,6,13,0.82);
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.3s;
+      backdrop-filter: blur(4px);
+    }
+    .add-hours-modal.open { opacity: 1; pointer-events: auto; }
+    .add-hours-box {
+      background: linear-gradient(150deg, rgba(15,20,40,0.95), rgba(11,16,33,0.94));
+      border: 1px solid rgba(129,211,255,0.28);
+      border-radius: var(--radius-lg);
+      padding: 34px 38px;
+      min-width: 430px;
+      max-width: 540px;
+      position: relative;
+      transform: translateY(12px);
+      transition: transform 0.3s;
+    }
+    .add-hours-modal.open .add-hours-box { transform: translateY(0); }
+    .add-hours-box::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0; height: 1px;
+      background: linear-gradient(90deg, transparent, rgba(129,211,255,0.55), transparent);
+    }
+    .ah-field {
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+      margin-bottom: 14px;
+    }
+    .ah-label {
+      font-size: 0.66rem;
+      font-weight: 700;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+      color: var(--text-dim);
+    }
+    .ah-input {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      padding: 12px 14px;
+      color: var(--text);
+      font-family: var(--mono);
+      font-size: 0.92rem;
+      width: 100%;
+      transition: border-color 0.2s;
+    }
+    .ah-input:focus { outline: none; border-color: rgba(129,211,255,0.65); }
+    .ah-row { display: flex; gap: 10px; }
+    .ah-row .ah-field { flex: 1; }
+    .ah-submit {
+      font-family: var(--font);
+      font-size: 0.76rem;
+      font-weight: 700;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+      padding: 13px;
+      border-radius: var(--radius-md);
+      border: 1px solid rgba(129,211,255,0.45);
+      color: #eaf6ff;
+      background: linear-gradient(120deg, rgba(69,124,234,0.36), rgba(90,186,255,0.26));
+      cursor: pointer;
+      width: 100%;
+      margin-bottom: 10px;
+      transition: background 0.16s;
+    }
+    .ah-submit:hover { background: linear-gradient(120deg, rgba(69,124,234,0.5), rgba(90,186,255,0.4)); }
+
+    /* ── Data Export Panel ───────────────────────────────────────
+       Slide-up panel from the bottom of the right panel.
+       Three options: CSV (spreadsheet), JSON (backup), Clear data.
+    */
+    .action-btn {
+      font-family: var(--font);
+      font-size: 0.62rem;
+      font-weight: 800;
+      letter-spacing: 0.13em;
+      text-transform: uppercase;
+      color: #eaf6ff;
+      background: linear-gradient(120deg, rgba(69,124,234,0.34), rgba(90,186,255,0.24));
+      border: 1px solid rgba(129,211,255,0.4);
+      border-radius: var(--radius-md);
+      padding: 8px 12px;
+      cursor: pointer;
+      transition: background 0.2s, border-color 0.2s, transform 0.12s;
+      white-space: nowrap;
+    }
+    .action-btn:hover {
+      background: linear-gradient(120deg, rgba(69,124,234,0.5), rgba(90,186,255,0.38));
+      border-color: rgba(129,211,255,0.66);
+      transform: translateY(-1px);
+    }
+    .action-btn.active {
+      background: linear-gradient(120deg, rgba(89,214,255,0.42), rgba(121,129,255,0.36));
+      border-color: rgba(129,211,255,0.78);
+      color: #ffffff;
+    }
+    .action-btn-danger {
+      border-color: rgba(255,126,126,0.48);
+      color: #ffd7d7;
+      background: linear-gradient(120deg, rgba(163,61,61,0.38), rgba(217,84,84,0.25));
+    }
+    .action-btn-danger:hover {
+      border-color: rgba(255,166,166,0.78);
+      background: linear-gradient(120deg, rgba(163,61,61,0.52), rgba(217,84,84,0.38));
+    }
+    .icon-btn {
+      width: 28px; height: 28px; border-radius: 999px; border: 1px solid rgba(129,211,255,0.24);
+      background: rgba(16,22,42,0.68); color: var(--text-sub); cursor: pointer;
+      display: inline-flex; align-items: center; justify-content: center; font-size: 0.85rem;
+      transition: border-color 0.2s, color 0.2s, background 0.2s;
+    }
+    .icon-btn:hover { border-color: rgba(129,211,255,0.55); color: #fff; background: rgba(27,36,63,0.82); }
+
+    .export-modal {
+      position: fixed;
+      inset: 0;
+      z-index: 200;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: rgba(6,6,13,0.82);
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.3s;
+      backdrop-filter: blur(4px);
+    }
+    .export-modal.open { opacity: 1; pointer-events: auto; }
+
+    .export-box {
+      background: linear-gradient(150deg, rgba(15,20,40,0.95), rgba(11,16,33,0.94));
+      border: 1px solid rgba(129,211,255,0.28);
+      border-radius: var(--radius-lg);
+      padding: 34px 38px;
+      min-width: 460px;
+      max-width: 620px;
+      position: relative;
+      transform: translateY(12px);
+      transition: transform 0.3s;
+    }
+    .export-modal.open .export-box { transform: translateY(0); }
+
+    .export-box::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0; height: 1px;
+      background: linear-gradient(90deg, transparent, rgba(129,211,255,0.55), transparent);
+    }
+
+    .exp-title {
+      font-size: 0.72rem;
+      font-weight: 700;
+      letter-spacing: 0.22em;
+      text-transform: uppercase;
+      color: #b3dcff;
+      margin-bottom: 6px;
+    }
+    .exp-sub {
+      font-size: 0.84rem;
+      font-weight: 300;
+      color: var(--text-dim);
+      margin-bottom: 22px;
+      line-height: 1.5;
+    }
+    .exp-row {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      margin-bottom: 20px;
+    }
+    .exp-option {
+      background: linear-gradient(140deg, rgba(13,20,40,0.88), rgba(17,26,48,0.75));
+      border: 1px solid rgba(129,211,255,0.22);
+      border-radius: var(--radius-md);
+      padding: 14px 18px;
+      cursor: pointer;
+      transition: border-color 0.2s, background 0.2s;
+      text-align: left;
+      font-family: var(--font);
+      width: 100%;
+    }
+    .exp-option:hover { border-color: rgba(129,211,255,0.55); background: linear-gradient(140deg, rgba(20,32,60,0.94), rgba(22,38,68,0.84)); }
+    .exp-option-title {
+      font-size: 0.84rem;
+      font-weight: 600;
+      color: var(--text);
+      margin-bottom: 3px;
+    }
+    .exp-option-desc {
+      font-size: 0.75rem;
+      font-weight: 400;
+      color: var(--text-sub);
+      line-height: 1.4;
+    }
+    .exp-option.danger { border-color: rgba(184,82,72,0.3); }
+    .exp-option.danger:hover { border-color: rgba(184,82,72,0.58); background: rgba(184,82,72,0.12); }
+    .exp-option.danger .exp-option-title { color: rgba(184,82,72,0.75); }
+    .day-add-btn {
+      color: #f0f7ff;
+      font-weight: 700;
+    }
+    .day-add-btn .exp-option-title,
+    .day-add-btn .exp-option-desc { color: #eaf5ff; }
+
+    #day-plan-fields input[type="time"]::-webkit-calendar-picker-indicator,
+    #ah-date::-webkit-calendar-picker-indicator {
+      filter: invert(71%) sepia(43%) saturate(846%) hue-rotate(83deg) brightness(96%) contrast(92%);
+      cursor: pointer;
+    }
+    .day-row-del {
+      border: 1px solid rgba(255,126,126,0.4);
+      color: #ffd6d6;
+      background: rgba(180,64,64,0.2);
+      border-radius: 10px;
+      padding: 0 10px;
+      font-size: 0.95rem;
+      cursor: pointer;
+    }
+    .day-row-del:hover { background: rgba(180,64,64,0.34); }
+
+    .exp-close {
+      font-family: var(--font);
+      font-size: 0.66rem;
+      font-weight: 700;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: var(--text-dim);
+      background: none;
+      border: none;
+      cursor: pointer;
+      padding: 0;
+      width: 100%;
+      text-align: center;
+    }
+    .exp-close:hover { color: var(--text-sub); }
+
+    .exp-stats {
+      font-size: 0.74rem;
+      color: var(--text-dim);
+      margin-bottom: 18px;
+      font-family: var(--mono);
+    }
+
+    /* ── Today's Tasks ─────────────────────────────────────────── */
+    .tasks-hdr {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 10px;
+    }
+    .tasks-shell {
+      border: 1px solid rgba(129,211,255,0.22);
+      background: linear-gradient(160deg, rgba(24,34,64,0.86), rgba(15,22,44,0.72));
+      border-radius: var(--radius-lg);
+      padding: 10px;
+    }
+    .tasks-add-wrap {
+      display: flex;
+      gap: 7px;
+      margin-bottom: 10px;
+    }
+    .tasks-input {
+      flex: 1;
+      background: rgba(10,15,30,0.8);
+      border: 1px solid rgba(129,211,255,0.22);
+      border-radius: var(--radius-md);
+      padding: 9px 11px;
+      color: var(--text);
+      font-family: var(--font);
+      font-size: 0.78rem;
+      transition: border-color 0.2s, box-shadow 0.2s;
+      min-width: 0;
+    }
+    .tasks-input:focus {
+      outline: none;
+      border-color: rgba(129,211,255,0.56);
+      box-shadow: 0 0 0 3px rgba(129,211,255,0.12);
+    }
+    .tasks-input::placeholder { color: var(--text-dim); }
+    .tasks-add-btn {
+      font-family: var(--font);
+      font-size: 0.7rem;
+      font-weight: 800;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      padding: 9px 14px;
+      border-radius: var(--radius-md);
+      border: 1px solid rgba(129,211,255,0.42);
+      color: #e9f8ff;
+      background: linear-gradient(120deg, rgba(69,124,234,0.36), rgba(90,186,255,0.26));
+      cursor: pointer;
+      white-space: nowrap;
+      transition: background 0.15s, color 0.15s, transform 0.12s;
+    }
+    .tasks-add-btn:hover {
+      background: linear-gradient(120deg, rgba(69,124,234,0.5), rgba(90,186,255,0.4));
+      transform: translateY(-1px);
+    }
+    .tasks-list { display: flex; flex-direction: column; gap: 6px; max-height: none; overflow-y: visible; scrollbar-width: thin; scrollbar-color: rgba(129,211,255,0.15) transparent; }
+    .tasks-list::-webkit-scrollbar { width: 3px; }
+    .tasks-list::-webkit-scrollbar-thumb { background: rgba(196,162,70,0.14); border-radius: 2px; }
+    .task-item {
+      display: flex;
+      align-items: center;
+      gap: 9px;
+      padding: 8px 9px;
+      border-radius: var(--radius-md);
+      border: 1px solid rgba(129,211,255,0.14);
+      background: linear-gradient(130deg, rgba(13,20,40,0.82), rgba(16,22,40,0.7));
+      transition: border-color 0.2s, background 0.2s, opacity 0.3s, transform 0.12s;
+      cursor: pointer;
+    }
+    .task-item:hover {
+      border-color: rgba(129,211,255,0.32);
+      background: linear-gradient(130deg, rgba(18,30,56,0.9), rgba(18,29,50,0.78));
+      transform: translateY(-1px);
+    }
+    .task-item.done {
+      border-color: rgba(78,148,96,0.2);
+      background: rgba(78,148,96,0.04);
+      opacity: 0.75;
+    }
+    /* Custom checkbox */
+    .task-cb {
+      flex-shrink: 0;
+      width: 20px; height: 20px;
+      border-radius: 6px;
+      border: 1px solid rgba(196,162,70,0.3);
+      background: transparent;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: border-color 0.2s, background 0.2s;
+      position: relative;
+      overflow: hidden;
+    }
+    .task-item.done .task-cb {
+      border-color: rgba(78,148,96,0.6);
+      background: rgba(78,148,96,0.18);
+    }
+    /* Tick mark SVG */
+    .task-tick {
+      opacity: 0;
+      transform: scale(0.8);
+      transition: opacity 0.18s ease, transform 0.18s ease;
+      color: #89f0a8;
+      font-size: 14px;
+      line-height: 1;
+    }
+    .task-item.done .task-tick {
+      opacity: 1;
+      transform: scale(1);
+    }
+    .task-star {
+      position: fixed;
+      left: 0; top: 0;
+      width: 10px; height: 10px;
+      color: #8fe9ff;
+      font-size: 12px;
+      pointer-events: none;
+      z-index: 9998;
+      text-shadow: 0 0 10px rgba(143,233,255,0.8);
+      animation: starBurst 900ms ease-out forwards;
+    }
+    @keyframes starBurst {
+      0% { opacity: 0; transform: translate(0,0) scale(0.6) rotate(0deg); }
+      15% { opacity: 1; }
+      100% { opacity: 0; transform: translate(var(--dx), var(--dy)) scale(1.45) rotate(180deg); }
+    }
+    .task-label {
+      flex: 1;
+      font-size: 0.72rem;
+      font-weight: 400;
+      color: var(--text-sub);
+      transition: color 0.3s, text-decoration 0.3s;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .task-item.done .task-label {
+      color: var(--text-dim);
+      text-decoration: line-through;
+      text-decoration-color: rgba(78,148,96,0.4);
+    }
+    .task-del {
+      flex-shrink: 0;
+      background: rgba(184,82,72,0.12);
+      border: 1px solid rgba(184,82,72,0.38);
+      border-radius: var(--radius-md);
+      color: rgba(255,164,164,0.95);
+      font-size: 0.68rem;
+      cursor: pointer;
+      padding: 3px 7px;
+      line-height: 1;
+      font-family: var(--mono);
+      opacity: 1;
+      transition: border-color 0.15s, color 0.15s, background 0.15s;
+    }
+    .task-del:hover {
+      border-color: rgba(255,125,125,0.9);
+      color: #ffd1d1;
+      background: rgba(184,82,72,0.24);
+    }
+    .tasks-empty {
+      font-size: 0.78rem;
+      font-weight: 500;
+      color: var(--text-dim);
+      text-align: center;
+      padding: 14px 10px;
+      border: 1px dashed rgba(129,211,255,0.2);
+      border-radius: 10px;
+      background: rgba(10,15,30,0.35);
+    }
+
+    .graph-controls {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 10px;
+      margin-bottom: 12px;
+      width: 100%;
+      border: 1px solid rgba(129,211,255,0.2);
+      border-radius: 16px;
+      padding: 6px;
+      background: linear-gradient(120deg, rgba(12,18,38,0.9), rgba(8,13,30,0.72));
+    }
+    .graph-month-nav {
+      display: none;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 8px;
+      gap: 8px;
+    }
+    .graph-month-nav.show { display: flex; }
+    .graph-month-label {
+      font-size: 0.66rem;
+      color: var(--text-sub);
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      font-weight: 700;
+    }
+    .graph-view {
+      width: 100%;
+      height: 100%;
+      max-width: 980px;
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-start;
+      padding-top: 14px;
+    }
+    .graph-card {
+      border: 1px solid rgba(129,211,255,0.22);
+      border-radius: 20px;
+      background: linear-gradient(160deg, rgba(10,16,38,0.94), rgba(6,12,28,0.9));
+      padding: 14px;
+      flex: 1;
+      min-height: 0;
+      box-shadow: inset 0 1px 0 rgba(255,255,255,0.03), 0 18px 46px rgba(0,0,0,0.35);
+      display: grid;
+      grid-template-rows: auto 1fr auto;
+      gap: 8px;
+      min-height: 420px;
+    }
+    .graph-card-top {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 10px;
+      gap: 12px;
+    }
+    .graph-card-title {
+      font-size: 0.95rem;
+      color: rgba(189,208,248,0.92);
+      font-weight: 700;
+    }
+    .graph-mini-switch {
+      display: inline-flex;
+      gap: 6px;
+      padding: 4px;
+      border-radius: 12px;
+      border: 1px solid rgba(129,211,255,0.18);
+      background: rgba(10,16,34,0.7);
+    }
+    .graph-mini-btn {
+      font-family: var(--font);
+      font-size: 0.62rem;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      color: rgba(184,203,240,0.72);
+      border: 1px solid rgba(129,211,255,0.2);
+      border-radius: 8px;
+      background: transparent;
+      padding: 6px 10px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+    .graph-mini-btn.active {
+      color: #ebf6ff;
+      border-color: rgba(129,211,255,0.6);
+      background: linear-gradient(120deg, rgba(76,136,255,0.46), rgba(83,214,255,0.24));
+    }
+    .graph-canvas-wrap {
+      min-height: 280px;
+      height: 100%;
+      border-radius: 16px;
+      overflow: hidden;
+      background: linear-gradient(180deg, rgba(11,18,40,0.74), rgba(7,12,28,0.55));
+      border: 1px solid rgba(129,211,255,0.08);
+    }
+    #graph-canvas {
+      width: 100%;
+      height: 100%;
+      min-height: 0;
+      display: block;
+    }
+    .graph-view .action-btn {
+      background: transparent;
+      border-color: rgba(129,211,255,0.2);
+      color: rgba(173,194,235,0.72);
+      border-radius: 10px;
+      box-shadow: none;
+    }
+    .graph-view .action-btn:hover {
+      background: rgba(70,122,236,0.18);
+      border-color: rgba(129,211,255,0.42);
+      transform: none;
+    }
+    .graph-view .action-btn.active {
+      color: #f4f8ff;
+      border-color: rgba(129,211,255,0.75);
+      background: linear-gradient(120deg, rgba(76,136,255,0.46), rgba(83,214,255,0.24));
+    }
+
+  </style>
+</head>
+<body>
+<canvas id="star-canvas" style="position:fixed;inset:0;width:100%;height:100%;pointer-events:none;z-index:0;"></canvas>
+<div class="app">
+
+  <!-- ── HEADER: brand + CS&DA tag only ────────────────────── -->
+
+
+  <!-- ── COUNTDOWN STRIP: full-width, prominent ────────────── -->
+  <!--
+    Moved out of the header into its own dedicated row.
+    Bigger numbers = immediate awareness of urgency.
+    Reason: when you're studying for 10+ hours, glancing up should
+    immediately show you how much runway is left.
+  -->
+  <div class="cd-strip">
+    <span class="cd-label" id="cd-label">Time to <span id="cd-label-name">Your Goal</span></span>
+    <div class="cd-units">
+      <div class="cd-unit">
+        <span class="cd-num" id="cd-d">---</span>
+        <span class="cd-lbl">Days</span>
+      </div>
+      <span class="cd-sep">:</span>
+      <div class="cd-unit">
+        <span class="cd-num" id="cd-h">--</span>
+        <span class="cd-lbl">Hours</span>
+      </div>
+      <span class="cd-sep">:</span>
+      <div class="cd-unit">
+        <span class="cd-num" id="cd-m">--</span>
+        <span class="cd-lbl">Min</span>
+      </div>
+      <span class="cd-sep">:</span>
+      <div class="cd-unit">
+        <span class="cd-num" id="cd-s">--</span>
+        <span class="cd-lbl">Sec</span>
+      </div>
+    </div>
+    <div class="cd-gate-label">
+      <span class="cd-gate-title" id="cd-target-title">No date set</span>
+      <span class="cd-gate-date" id="cd-target-date">Configure your countdown</span>
+    </div>
+  </div>
+
+  <!-- ── MAIN: timer (left) · divider · study log (right) ─── -->
+  <div class="main">
+
+    <!-- Left: Quote + Timer + Controls -->
+    <div class="left">
+      <div class="main-view-switch">
+        <button class="main-view-btn active" id="main-btn-timer" onclick="switchMainView('timer')">Timer</button>
+        <button class="main-view-btn" id="main-btn-graphs" onclick="switchMainView('graphs')">Graphs</button>
+      </div>
+
+      <div class="main-view active" id="main-view-timer">
+        <div class="quote-wrap">
+          <p class="qt" id="qt"></p>
+          <span class="qs" id="qs"></span>
+        </div>
+
+        <div class="rule"></div>
+
+        <div class="timer-block">
+          <div class="timer-num" id="timer">00:00:00</div>
+          <div class="timer-line" id="tline"></div>
+        </div>
+
+        <div class="timer-meta" id="tmeta">&nbsp;</div>
+
+        <div class="btn-row">
+          <button class="btn btn-start" id="b-start" onclick="timerStart()" title="Start a new study session">Start</button>
+          <button class="btn btn-pause" id="b-pause" onclick="timerPause()" disabled title="Pause or resume the current session">Pause</button>
+          <button class="btn btn-stop"  id="b-stop"  onclick="timerStop()"  disabled title="End session and save to log">Stop</button>
+        </div>
+
+        <div class="kb-hint">
+          <kbd>Space</kbd> &nbsp;Start / Pause &nbsp;&nbsp; <kbd>Esc</kbd> &nbsp;Stop
+        </div>
+
+
+        <div class="sess-card" id="scard">
+          <div class="sc-lbl">Session Complete · Great Work</div>
+          <div class="sc-dur"  id="sc-dur"></div>
+          <div class="sc-dur-label">studied this session</div>
+          <div class="sc-body" id="sc-body"></div>
+        </div>
+      </div>
+
+      <div class="main-view" id="main-view-graphs">
+        <div class="graph-view">
+          <div class="graph-controls">
+            <button class="action-btn" id="graph-range-7" onclick="setGraphRange('weekly')">Weekly</button>
+            <button class="action-btn" id="graph-range-14" onclick="setGraphRange('biweekly')">Bi-Weekly</button>
+            <button class="action-btn" id="graph-range-month" onclick="setGraphRange('monthly')">Monthly</button>
+          </div>
+          <div class="graph-month-nav" id="graph-month-nav">
+            <button class="action-btn" onclick="changeGraphMonth(-1)">Prev Month</button>
+            <span class="graph-month-label" id="graph-month-label"></span>
+            <button class="action-btn" onclick="changeGraphMonth(1)">Next Month</button>
+          </div>
+          <div class="graph-card">
+            <div class="graph-card-top">
+              <div class="graph-card-title" id="graph-title">Last 7 Days</div>
+              <div class="graph-mini-switch">
+                <button class="graph-mini-btn" id="graph-style-bar" onclick="setGraphStyle('bar')">Bar</button>
+                <button class="graph-mini-btn" id="graph-style-line" onclick="setGraphStyle('line')">Line</button>
+                <button class="graph-mini-btn" id="graph-style-area" onclick="setGraphStyle('area')">Area</button>
+              </div>
+            </div>
+            <div class="graph-canvas-wrap">
+              <canvas id="graph-canvas"></canvas>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="v-div"></div>
+    <button class="rp-toggle" id="rp-toggle" onclick="toggleRightPanel()" title="Hide/Show side panel">❯</button>
+
+    <!-- Right: Study Log -->
+    <div class="right">
+      <div class="rp-tabs">
+        <button class="rp-tab active" id="tab-overview" onclick="switchRightPanel('overview')">Overview</button>
+        <button class="rp-tab" id="tab-tasks" onclick="switchRightPanel('tasks')">Tasks</button>
+        <button class="rp-tab" id="tab-log" onclick="switchRightPanel('log')">Log</button>
+      </div>
+
+      <div class="r-panel active" id="panel-overview">
+        <div class="r-section tight">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px"><div class="r-section-title" style="margin-bottom:0">Configure Day</div><button class="icon-btn" onclick="openDaySettings()" title="Configure your day">⚙</button></div>
+          <div class="now-wrap" id="now-wrap">
+            <div class="now-top">
+              <span class="now-label" id="now-label">Loading…</span>
+            </div>
+            <div class="now-block-name" id="now-block-name">—</div>
+            <div class="now-bottom">
+              <span class="now-time-left" id="now-time-left">—</span>
+              <span class="now-next" id="now-next"></span>
+            </div>
+            <div class="now-progress"><div class="now-progress-fill" id="now-progress-fill" style="width:0%"></div></div>
+          </div>
+        </div>
+
+        <div class="r-section">
+          <div class="panel-lbl" style="margin-bottom:10px">Statistics</div>
+          <div class="stats">
+            <div class="scard"><span class="sl">Today</span><span class="sv" id="s-today">0h 0m</span></div>
+            <div class="scard"><span class="sl">This Week</span><span class="sv" id="s-week">0h 0m</span></div>
+            <div class="scard"><span class="sl">This Month</span><span class="sv" id="s-month">0h 0m</span></div>
+            <div class="scard"><span class="sl">Daily Avg</span><span class="sv" id="s-avg">0h 0m</span></div>
+            <div class="scard"><span class="sl">Streak</span><span class="sv" id="s-streak">0 days</span></div>
+            <div class="scard"><span class="sl">All-Time</span><span class="sv" id="s-alltime">0h 0m</span></div>
+            <div class="scard"><span class="sl">Tasks Today</span><span class="sv" id="s-tasks">0 / 0</span></div>
+          </div>
+        </div>
+
+        <div class="r-section">
+          <div class="panel-lbl" style="margin-bottom:10px">Miscellaneous</div>
+          <div style="display:flex;gap:6px;flex-wrap:wrap">
+            <button class="action-btn" id="cd-toggle-btn" onclick="toggleCountdownVisibility()">Countdown: On</button>
+            <button class="action-btn" onclick="openCountdownSettings()">Countdown Settings</button>
+            <button class="action-btn" onclick="openAddHours()" title="Manually add a study session">Add Hours</button>
+            <button class="action-btn" onclick="openExport()" title="Export or backup your study data">Export</button>
+            <button class="action-btn action-btn-danger" onclick="openClear()" title="Clear study data">Clear</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="r-panel" id="panel-tasks">
+        <div class="r-section">
+          <div class="tasks-hdr">
+            <div class="panel-lbl" style="margin-bottom:0">Today&rsquo;s Tasks</div>
+            <span class="heat-week-total" id="tasks-count-lbl" style="color:var(--gold-dim)"></span>
+          </div>
+          <div class="tasks-shell">
+            <div class="tasks-add-wrap">
+              <input class="tasks-input" id="task-input" type="text" placeholder="What’s the next winning task?" maxlength="80" onkeydown="if(event.key==='Enter')addTask()" />
+              <button class="tasks-add-btn" onclick="addTask()">+ Add</button>
+            </div>
+            <div class="tasks-list" id="tasks-list">
+              <div class="tasks-empty">No tasks yet — add your first win for today.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="r-panel" id="panel-log">
+        <div class="r-section">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+            <div class="panel-lbl" style="margin-bottom:0">Study Log</div>
+            <div class="graph-mini-switch">
+              <button class="graph-mini-btn active" id="log-range-today" onclick="setLogRange('today')">Today</button>
+              <button class="graph-mini-btn" id="log-range-week" onclick="setLogRange('week')">Week</button>
+              <button class="graph-mini-btn" id="log-range-month" onclick="setLogRange('month')">Month</button>
+            </div>
+          </div>
+          <div class="log-hdr" id="log-hdr">Today&rsquo;s Sessions</div>
+          <div class="log-list" id="log-list">
+            <div class="log-empty">No sessions yet.<br>Start your first focused session.</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="brand-credit">
+        Dream Study · Created by Shriyash Patil with ❤️ · <a href="https://github.com/Shriyash-24" target="_blank" rel="noopener noreferrer">github.com/Shriyash-24</a>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- Export modal -->
+<div class="export-modal" id="export-modal" role="dialog" aria-modal="true" aria-labelledby="exp-modal-title">
+  <div class="export-box">
+    <div class="exp-title" id="exp-modal-title">Export Study Data</div>
+    <div class="exp-sub" id="exp-sub">Loading…</div>
+    <div class="exp-stats" id="exp-stats"></div>
+    <div class="exp-row">
+      <button class="exp-option" onclick="exportCSV()">
+        <div class="exp-option-title">📊 Download as CSV</div>
+        <div class="exp-option-desc">Opens in Excel, Google Sheets. One row per session with date, start time, end time, and duration. Best for analysis.</div>
+      </button>
+      <button class="exp-option" onclick="exportJSON()">
+        <div class="exp-option-title">💾 Download as JSON</div>
+        <div class="exp-option-desc">Full data backup. Can be restored later. Keep this safe — it's your complete study history.</div>
+      </button>
+      <button class="exp-option" onclick="copyText()">
+        <div class="exp-option-title" id="copy-btn-title">📋 Copy Summary Text</div>
+        <div class="exp-option-desc">Copies a clean plain-text summary — total time, streak, daily average — to your clipboard.</div>
+      </button>
+    </div>
+    <button class="exp-close" onclick="closeExport()">Close</button>
+  </div>
+</div>
+
+<!-- Clear Data modal -->
+<div class="export-modal" id="clear-modal" role="dialog" aria-modal="true" aria-labelledby="clear-modal-title">
+  <div class="export-box">
+    <div class="exp-title" id="clear-modal-title">Clear Study Data</div>
+    <div class="exp-sub">Permanently removes sessions from storage. Export a backup first if needed.</div>
+    <div class="exp-row">
+      <button class="exp-option danger" onclick="confirmClear('today')">
+        <div class="exp-option-title">Clear Today</div>
+        <div class="exp-option-desc">Removes only today's saved sessions. Useful after a power cut ruined your day's data.</div>
+      </button>
+      <button class="exp-option danger" onclick="confirmClear('week')">
+        <div class="exp-option-title">Clear This Week</div>
+        <div class="exp-option-desc">Removes all sessions from the current Mon–Sun week.</div>
+      </button>
+      <button class="exp-option danger" onclick="confirmClear('month')">
+        <div class="exp-option-title">Clear This Month</div>
+        <div class="exp-option-desc">Removes all sessions from the current calendar month.</div>
+      </button>
+      <button class="exp-option danger" onclick="confirmClear('all')">
+        <div class="exp-option-title">Clear All Data</div>
+        <div class="exp-option-desc">Permanently deletes all session history. Download a backup first. Cannot be undone.</div>
+      </button>
+    </div>
+    <button class="exp-close" onclick="closeClear()">Cancel</button>
+  </div>
+</div>
+
+<!-- Add Hours modal — for manual session entry -->
+<div class="add-hours-modal" id="add-hours-modal" role="dialog" aria-modal="true" aria-labelledby="ah-modal-title">
+  <div class="add-hours-box">
+    <div class="exp-title" id="ah-modal-title">Add Study Hours</div>
+    <div class="exp-sub" style="margin-bottom:18px">Manually log time you studied without the timer — e.g. studying on paper, offline, or another device.</div>
+    <div class="ah-field">
+      <label class="ah-label" for="ah-date">Date</label>
+      <input class="ah-input" type="date" id="ah-date" />
+    </div>
+    <div class="ah-row">
+      <div class="ah-field">
+        <label class="ah-label" for="ah-hours">Hours</label>
+        <input class="ah-input" type="number" id="ah-hours" min="0" max="23" value="1" />
+      </div>
+      <div class="ah-field">
+        <label class="ah-label" for="ah-minutes">Minutes</label>
+        <input class="ah-input" type="number" id="ah-minutes" min="0" max="59" value="0" />
+      </div>
+    </div>
+    <button class="ah-submit" onclick="saveManualHours()">Save Session</button>
+    <button class="exp-close" onclick="closeAddHours()">Cancel</button>
+  </div>
+</div>
+
+
+
+<div class="export-modal" id="countdown-settings-modal" role="dialog" aria-modal="true" aria-labelledby="countdown-settings-title">
+  <div class="export-box">
+    <div class="exp-title" id="countdown-settings-title">Countdown Settings</div>
+    <div class="exp-sub" style="margin-bottom:18px">Choose a countdown name and target date.</div>
+    <div class="ah-field">
+      <label class="ah-label" for="cd-name-input">Countdown Name</label>
+      <input class="ah-input" type="text" id="cd-name-input" maxlength="28" placeholder="Exam, launch, goal..." />
+    </div>
+    <div class="ah-field">
+      <label class="ah-label" for="cd-date-input">Countdown Date</label>
+      <input class="ah-input" type="date" id="cd-date-input" />
+    </div>
+    <button class="ah-submit" onclick="saveCountdownSettings()">Save Settings</button>
+    <button class="exp-close" onclick="closeCountdownSettings()">Cancel</button>
+  </div>
+</div>
+
+<div class="export-modal" id="day-settings-modal" role="dialog" aria-modal="true" aria-labelledby="day-settings-title">
+  <div class="export-box">
+    <div class="exp-title" id="day-settings-title">Configure Day</div>
+    <div class="exp-sub" style="margin-bottom:18px">Define blocks as start time, end time, and activity.</div>
+    <div id="day-plan-fields" class="exp-row" style="margin-bottom:14px"></div>
+    <button class="exp-option day-add-btn" onclick="addDayPlanRow()">+ Add Block</button>
+    <button class="ah-submit" style="margin-top:10px" onclick="saveDaySettings()">Save Day Plan</button>
+    <button class="exp-close" onclick="closeDaySettings()">Cancel</button>
+  </div>
+</div>
+
+<!-- Break reminder toast — fires after 90 min of continuous study -->
+<div class="break-toast" id="break-toast" role="alert" aria-live="polite">
+  <div class="bt-icon">🌸</div>
+  <div class="bt-title">90 Minutes — Take a Short Break</div>
+  <div class="bt-msg">"Take a short pause now, so your next session stays sharp."<br><span style="font-size:0.62rem;color:var(--gold-dim);font-style:normal;letter-spacing:0.1em">— Focus Reminder</span></div>
+  <button class="bt-dismiss" onclick="dismissBreak()">Dismiss &nbsp;·&nbsp; Continue Studying</button>
+</div>
+
+<script>
+/* ─── CONSTANTS ───────────────────────────────────────────────── */
+const KEY_TIMER    = 'focus_timer_v1';
+const KEY_SESSIONS = 'focus_sessions_v1';
+const KEY_CONFIG   = 'focus_config_v1';
+const KEY_DAY_PLAN = 'focus_day_plan_v1';
+
+/* ─── QUOTES ──────────────────────────────────────────────────── */
+const QUOTES = [
+  {t:'Consistency compounds faster than intensity.',s:'James Clear'},
+  {t:'Success is the sum of small efforts repeated daily.',s:'Robert Collier'},
+  {t:'Do what matters, then do it again tomorrow.',s:'Cal Newport'},
+  {t:'Action cures fear.',s:'David J. Schwartz'},
+  {t:'Your future is created by what you do today.',s:'Robert Kiyosaki'},
+  {t:'Small progress is still progress.',s:'Anonymous'},
+  {t:'Discipline is choosing what you want most.',s:'Abraham Lincoln (attributed)'},
+  {t:'Focus is a superpower in a distracted world.',s:'Unknown'},
+  {t:'Well begun is half done.',s:'Aristotle'},
+  {t:'The secret of getting ahead is getting started.',s:'Mark Twain'},
+  {t:'Quality means doing it right when no one is watching.',s:'Henry Ford'},
+  {t:'Stay patient and trust your effort.',s:'Anonymous'},
+  {t:'Learning never exhausts the mind.',s:'Leonardo da Vinci'},
+  {t:'The best way out is always through.',s:'Robert Frost'},
+  {t:'One focused hour beats three distracted ones.',s:'Unknown'},
+  {t:'You do not rise to goals, you fall to systems.',s:'James Clear'},
+  {t:'Great acts are made of small deeds.',s:'Lao Tzu'},
+  {t:'Done is better than perfect.',s:'Sheryl Sandberg'},
+  {t:'Start where you are. Use what you have.',s:'Arthur Ashe'},
+  {t:'Little by little, one travels far.',s:'J.R.R. Tolkien'},
+  {t:'The pain of discipline weighs ounces.',s:'Jim Rohn'},
+  {t:'A river cuts rock through persistence.',s:'James N. Watkins'},
+  {t:'Progress, not perfection.',s:'Anonymous'},
+  {t:'Energy flows where attention goes.',s:'Tony Robbins'},
+  {t:'The main thing is to keep the main thing.',s:'Stephen Covey'},
+  {t:'Do one thing now that matters most.',s:'Anonymous'},
+  {t:'Quiet work creates loud results.',s:'Unknown'},
+  {t:'Effort never betrays.',s:'Unknown'},
+  {t:'Sustained focus beats sporadic hustle.',s:'Unknown'},
+  {t:'Hard choices, easy life.',s:'Jerzy Gregorek'},
+  {t:'Time is life spent; spend it deliberately.',s:'Anonymous'},
+  {t:'Small hinges swing big doors.',s:'W. Clement Stone'},
+  {t:'Momentum begins with one brave minute.',s:'Unknown'},
+  {t:'If it is important, schedule it.',s:'Anonymous'},
+  {t:'Attention is your most valuable asset.',s:'Anonymous'},
+  {t:'Do not count hours, make hours count.',s:'Anonymous'},
+  {t:'Clarity comes from engagement, not thought alone.',s:'Marie Forleo'},
+  {t:'Today is expensive. Spend it wisely.',s:'Anonymous'},
+  {t:'One page, one problem, one step.',s:'Anonymous'},
+  {t:'Your habits write your story.',s:'Unknown'},
+  {t:'Focus is saying no to almost everything.',s:'Steve Jobs'},
+  {t:'The work you avoid is the work that grows you.',s:'Unknown'},
+  {t:'Aim for progress every single day.',s:'Unknown'},
+  {t:'Patience and persistence make you unstoppable.',s:'Anonymous'},
+  {t:'Deep work creates deep results.',s:'Cal Newport'},
+  {t:'You can do hard things for one more minute.',s:'Unknown'},
+  {t:'Make the next decision the right one.',s:'Unknown'},
+  {t:'The future rewards the consistent.',s:'Unknown'},
+  {t:'Do less, but better and with full attention.',s:'Unknown'},
+  {t:'A focused day beats a busy week.',s:'Unknown'},
+  {t:'When in doubt, begin.',s:'Anonymous'},
+  {t:'Small disciplined actions become identity.',s:'Unknown'},
+  {t:'Protect your mornings for important work.',s:'Unknown'},
+  {t:'Your calendar reveals your priorities.',s:'Unknown'},
+  {t:'One distraction can cost an hour.',s:'Anonymous'},
+  {t:'The first step is always the heaviest.',s:'Unknown'},
+  {t:'Intensity fades, systems remain.',s:'Anonymous'},
+  {t:'Success loves consistency more than talent.',s:'Unknown'},
+  {t:'Finish what you start today.',s:'Unknown'},
+  {t:'Stack wins, however small.',s:'Unknown'},
+  {t:'You are one focused session away from momentum.',s:'Unknown'}
+];
+
+function shuffle(a){
+  const b=[...a];
+  for(let i=b.length-1;i>0;i--){
+    const j=Math.floor(Math.random()*(i+1));
+    [b[i],b[j]]=[b[j],b[i]];
+  }
+  return b;
+}
+
+let pool=shuffle(QUOTES), qi=0;
+
+function fitQuoteSingleLine(){
+  const qt=document.getElementById('qt');
+  qt.style.fontSize='1.15rem';
+  // Shrink until it fits one line in the available width.
+  for(let i=0;i<14 && qt.scrollWidth>qt.clientWidth;i++){
+    const size=parseFloat(getComputedStyle(qt).fontSize);
+    if(size<=11.5) break;
+    qt.style.fontSize=(size-1)+'px';
+  }
+}
+
+function nextQuote(){
+  const qt=document.getElementById('qt'), qs=document.getElementById('qs');
+  qt.classList.remove('show'); qs.classList.remove('show');
+  setTimeout(()=>{
+    if(qi>=pool.length){pool=shuffle(QUOTES);qi=0;}
+    const q=pool[qi++];
+    qt.textContent='\u201C'+q.t+'\u201D';
+    qs.textContent=q.s;
+    fitQuoteSingleLine();
+    qt.classList.add('show'); qs.classList.add('show');
+  },500);
+}
+nextQuote();
+setInterval(nextQuote,30000);
+window.addEventListener('resize', ()=>{
+  fitQuoteSingleLine();
+  updateTasksListViewport();
+  if(activeMainView==='graphs') renderGraphs();
+});
+
+/* ─── COUNTDOWN ───────────────────────────────────────────────── */
+let _cdIv=null;
+let appConfig={ countdownName:'Your Goal', countdownDate:'', countdownEnabled:true };
+
+function loadConfig(){
+  try{ appConfig={...appConfig,...JSON.parse(localStorage.getItem(KEY_CONFIG)||'{}')}; }catch(e){}
+}
+function saveConfig(){ localStorage.setItem(KEY_CONFIG,JSON.stringify(appConfig)); }
+function applyCountdownVisibility(){
+  const app=document.querySelector('.app');
+  const on=appConfig.countdownEnabled!==false;
+  app?.classList.toggle('no-countdown',!on);
+  const btn=document.getElementById('cd-toggle-btn');
+  if(btn) btn.textContent='Countdown: '+(on?'On':'Off');
+}
+function applyCountdownHeader(){
+  document.getElementById('cd-label-name').textContent=(appConfig.countdownName||'Your Goal').toUpperCase();
+  if(appConfig.countdownDate){
+    const d=new Date(appConfig.countdownDate+'T00:00:00');
+    document.getElementById('cd-target-title').textContent=appConfig.countdownName||'Your Goal';
+    document.getElementById('cd-target-date').textContent=d.toLocaleDateString(undefined,{year:'numeric',month:'short',day:'numeric'});
+  } else {
+    document.getElementById('cd-target-title').textContent='No date set';
+    document.getElementById('cd-target-date').textContent='Configure your countdown';
+  }
+}
+function tickCD(){
+  applyCountdownHeader();
+  if(!appConfig.countdownDate){
+    document.getElementById('cd-d').textContent='0';
+    document.getElementById('cd-h').textContent='00';
+    document.getElementById('cd-m').textContent='00';
+    document.getElementById('cd-s').textContent='00';
+    return;
+  }
+  const target=new Date(appConfig.countdownDate+'T00:00:00');
+  const diff=target-Date.now();
+  if(diff<=0){
+    document.getElementById('cd-d').textContent='0';
+    document.getElementById('cd-h').textContent='00';
+    document.getElementById('cd-m').textContent='00';
+    document.getElementById('cd-s').textContent='00';
+    return;
+  }
+  const d=Math.floor(diff/86400000),
+        h=Math.floor((diff%86400000)/3600000),
+        m=Math.floor((diff%3600000)/60000),
+        s=Math.floor((diff%60000)/1000);
+  document.getElementById('cd-d').textContent=d;
+  document.getElementById('cd-h').textContent=pad(h);
+  document.getElementById('cd-m').textContent=pad(m);
+  document.getElementById('cd-s').textContent=pad(s);
+}
+loadConfig();
+applyCountdownVisibility();
+tickCD(); _cdIv=setInterval(tickCD,1000);
+
+function toggleCountdownVisibility(){
+  appConfig.countdownEnabled=!(appConfig.countdownEnabled!==false);
+  saveConfig();
+  applyCountdownVisibility();
+}
+
+/* ─── HELPERS ─────────────────────────────────────────────────── */
+function pad(n){return String(n).padStart(2,'0');}
+
+function switchRightPanel(name){
+  document.querySelectorAll('.rp-tab').forEach(btn=>btn.classList.remove('active'));
+  document.querySelectorAll('.r-panel').forEach(panel=>panel.classList.remove('active'));
+  const tab=document.getElementById('tab-'+name);
+  const panel=document.getElementById('panel-'+name);
+  if(tab) tab.classList.add('active');
+  if(panel) panel.classList.add('active');
+  requestAnimationFrame(updateTasksListViewport);
+}
+
+let rightPanelOpen=true;
+function toggleRightPanel(){
+  rightPanelOpen=!rightPanelOpen;
+  const main=document.querySelector('.main');
+  main?.classList.toggle('right-collapsed',!rightPanelOpen);
+  const btn=document.getElementById('rp-toggle');
+  if(btn) btn.textContent=rightPanelOpen?'❯':'❮';
+  setTimeout(()=>{
+    fitQuoteSingleLine();
+    if(activeMainView==='graphs') renderGraphs();
+  },360);
+}
+
+let activeMainView='timer';
+function switchMainView(name){
+  activeMainView=name;
+  document.getElementById('main-btn-timer')?.classList.toggle('active',name==='timer');
+  document.getElementById('main-btn-graphs')?.classList.toggle('active',name==='graphs');
+  document.getElementById('main-view-timer')?.classList.toggle('active',name==='timer');
+  document.getElementById('main-view-graphs')?.classList.toggle('active',name==='graphs');
+  if(name==='graphs') renderGraphs();
+}
+
+function updateTasksListViewport(){
+  const panel=document.getElementById('panel-tasks');
+  const shell=document.querySelector('#panel-tasks .tasks-shell');
+  const list=document.getElementById('tasks-list');
+  if(!panel || !shell || !list) return;
+  const panelActive=panel.classList.contains('active');
+  if(!panelActive){
+    list.style.maxHeight='';
+    list.style.overflowY='visible';
+    return;
+  }
+  const available=window.innerHeight - shell.getBoundingClientRect().top - 28;
+  const capped=Math.max(170, Math.min(available, 520));
+  list.style.maxHeight=capped+'px';
+  list.style.overflowY=list.scrollHeight>capped?'auto':'visible';
+}
+
+/* "YYYY-MM-DD" from a ms timestamp (defaults to now) */
+function dk(ms){
+  const d=new Date(ms??Date.now());
+  return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate());
+}
+
+/* Is a ms timestamp in the current Mon–Sun week? */
+function inWeek(ms){
+  const now=new Date(), dow=(now.getDay()+6)%7;
+  const mon=new Date(now); mon.setDate(now.getDate()-dow); mon.setHours(0,0,0,0);
+  const nextMon=new Date(mon); nextMon.setDate(mon.getDate()+7);
+  const d=new Date(ms);
+  return d>=mon&&d<nextMon;
+}
+
+/* Is a ms timestamp in the current calendar month? */
+function inMonth(ms){
+  const n=new Date(),d=new Date(ms);
+  return d.getFullYear()===n.getFullYear()&&d.getMonth()===n.getMonth();
+}
+
+/* Format ms → "HH:MM:SS" */
+function fmtDur(ms){
+  const s=Math.floor(Math.max(0,ms)/1000);
+  return pad(Math.floor(s/3600))+':'+pad(Math.floor((s%3600)/60))+':'+pad(s%60);
+}
+
+/* Format timestamp → "9:15 AM" */
+function fmtT(ms){
+  const d=new Date(ms); let h=d.getHours(),m=d.getMinutes();
+  const ap=h>=12?'PM':'AM'; h=h%12||12;
+  return h+':'+pad(m)+'\u202F'+ap;
+}
+
+/* Format ms → "Xh Ym" */
+function fmtHM(ms){
+  return Math.floor(ms/3600000)+'h\u202F'+Math.floor((ms%3600000)/60000)+'m';
+}
+
+/* ─── TIMER STATE ─────────────────────────────────────────────── */
+/*
+   ACCURACY GUARANTEE:
+   elapsed = (now - sessionStart) - totalPaused - ongoingPauseDuration
+   This is computed fresh on every read using real wall-clock timestamps.
+   setInterval is ONLY used to refresh the visible display.
+   Therefore: sleeping laptop, throttled background tab, page refresh —
+   none of these affect accuracy. The number is always correct when read.
+*/
+let ts={status:'idle',sessionStart:null,pauseStart:null,totalPaused:0};
+let _iv=null;
+
+function saveTS(){localStorage.setItem(KEY_TIMER,JSON.stringify(ts));}
+function loadTS(){
+  try{const r=localStorage.getItem(KEY_TIMER);if(r)ts=JSON.parse(r);}catch(e){}
+}
+
+function elapsed(){
+  if(!ts.sessionStart)return 0;
+  // If currently paused, include ongoing pause duration in the subtraction
+  const op=(ts.status==='paused'&&ts.pauseStart)?(Date.now()-ts.pauseStart):0;
+  return Math.max(0,Date.now()-ts.sessionStart-ts.totalPaused-op);
+}
+
+function refreshDisplay(){
+  const t=fmtDur(elapsed());
+  document.getElementById('timer').textContent=t;
+  if(ts.status==='running') document.title='\u25B6\uFE0E '+t+' \u00B7 Focus Session Tracker';
+  else if(ts.status==='paused') document.title='\u23F8\uFE0E '+t+' \u00B7 Focus Session Tracker';
+  // Load sessions once and share across all dependent updates to avoid 4× localStorage reads per tick
+  const _sessions=loadSessions();
+  if(activeMainView==='graphs') renderGraphs();
+  checkBreakReminder();
+  // BUG FIX: Update stat card elements live so they tick every second during a session.
+  // Previously these were only set inside renderLog() (called at boot and after Stop),
+  // so they froze at the boot value for the entire duration of a session.
+  if(ts.status==='running'||ts.status==='paused'){
+    const todayKey=dk(), e=elapsed();
+    const _todayMs =_sessions.filter(s=>(s.date||dk(s.startTs))===todayKey).reduce((a,s)=>a+s.duration,0)+e;
+    const _weekMs  =_sessions.filter(s=>inWeek(s.startTs)).reduce((a,s)=>a+s.duration,0)+e;
+    const _monthMs =_sessions.filter(s=>inMonth(s.startTs)).reduce((a,s)=>a+s.duration,0)+e;
+    const _allTime =_sessions.reduce((a,s)=>a+s.duration,0)+e;
+    const _byDay={};
+    _sessions.forEach(s=>{ const k=s.date||dk(s.startTs); _byDay[k]=(_byDay[k]||0)+s.duration; });
+    _byDay[todayKey]=(_byDay[todayKey]||0)+e;
+    const _avgMs=Object.keys(_byDay).length?Object.values(_byDay).reduce((a,v)=>a+v,0)/Object.keys(_byDay).length:0;
+    document.getElementById('s-today').textContent  =fmtHM(_todayMs);
+    document.getElementById('s-week').textContent   =fmtHM(_weekMs);
+    document.getElementById('s-month').textContent  =fmtHM(_monthMs);
+    document.getElementById('s-alltime').textContent=fmtHM(_allTime);
+    document.getElementById('s-avg').textContent    =fmtHM(_avgMs);
+  }
+}
+
+/* Sync all button states and visuals to current status */
+function applyUI(st){
+  const bs=document.getElementById('b-start'),
+        bp=document.getElementById('b-pause'),
+        bx=document.getElementById('b-stop'),
+        td=document.getElementById('timer'),
+        tl=document.getElementById('tline');
+  bs.disabled = st!=='idle';
+  bp.disabled = st==='idle';
+  bx.disabled = st==='idle';
+  bp.textContent = st==='paused'?'Resume':'Pause';
+  td.classList.toggle('paused', st==='paused');
+  tl.classList.toggle('on',     st==='running');
+}
+
+/* ─── START ───────────────────────────────────────────────────── */
+function timerStart(){
+  if(ts.status!=='idle')return;
+  ts={status:'running',sessionStart:Date.now(),pauseStart:null,totalPaused:0};
+  // Hide any previous session summary card and clear its content
+  const sc=document.getElementById('scard');
+  sc.classList.remove('show');
+  document.getElementById('sc-dur').textContent='';
+  document.getElementById('sc-body').textContent='';
+  document.getElementById('tmeta').textContent='Started at\u202F'+fmtT(ts.sessionStart);
+  saveTS(); applyUI('running');
+  clearInterval(_iv); _iv=setInterval(refreshDisplay,1000); refreshDisplay();
+}
+
+/* ─── PAUSE / RESUME ──────────────────────────────────────────── */
+function timerPause(){
+  if(ts.status==='running'){
+    ts.pauseStart=Date.now(); ts.status='paused';
+    clearInterval(_iv); _iv=null;
+    // Snap display to exact elapsed at the moment of pause before freezing
+    refreshDisplay();
+  } else if(ts.status==='paused'){
+    ts.totalPaused+=Date.now()-ts.pauseStart;
+    ts.pauseStart=null; ts.status='running';
+    clearInterval(_iv); _iv=setInterval(refreshDisplay,1000); refreshDisplay();
+  }
+  saveTS(); applyUI(ts.status);
+}
+
+/* ─── STOP ────────────────────────────────────────────────────── */
+function timerStop(){
+  if(ts.status==='idle')return;
+  const endTs=Date.now(), dur=elapsed(), startTs=ts.sessionStart;
+
+  document.querySelector('#scard .sc-lbl').textContent='Session Logged';
+  document.getElementById('sc-dur').textContent=fmtDur(dur);
+  document.getElementById('sc-body').textContent=
+    fmtT(startTs)+'\u2009→\u2009'+fmtT(endTs);
+  document.getElementById('scard').classList.add('show');
+
+  // Only persist sessions longer than 30 seconds (avoids accidental clicks)
+  if(dur>=30000){
+    const arr=loadSessions();
+    arr.push({date:dk(startTs),startTs,endTs,duration:dur});
+    try{
+      localStorage.setItem(KEY_SESSIONS,JSON.stringify(arr));
+    }catch(e){
+      // Storage quota exceeded — warn user so data isn't silently lost
+      console.error('Storage quota exceeded:',e);
+      alert('⚠️ Storage full — this session could not be saved.\nPlease export your data and clear it to free up space.');
+    }
+  } else {
+    // Silently discard sessions under 30 seconds — update card to inform user
+    document.getElementById('sc-body').textContent='(Session under 30 seconds — not saved to log)';
+  }
+
+  // Full reset
+  ts={status:'idle',sessionStart:null,pauseStart:null,totalPaused:0};
+  clearInterval(_iv); _iv=null;
+  localStorage.removeItem(KEY_TIMER);
+  document.getElementById('timer').textContent='00:00:00';
+  document.getElementById('tmeta').textContent='\u00a0';
+  document.title='Focus Session Tracker'; // reset tab title
+  _breakShown=false; // reset break reminder for next session
+  dismissBreak();
+  applyUI('idle');
+  renderLog();
+}
+
+/* ─── DISCARD LIVE SESSION ────────────────────────────────────── */
+/*
+   Used after a power cut or accidental start — throws away the current
+   session without saving it, and resets the timer to idle.
+*/
+function discardLive(){
+  if(ts.status==='idle')return;
+  const ok=confirm('Discard current session without saving?\n\nUse this after a power cut or accidental start.');
+  if(!ok)return;
+  ts={status:'idle',sessionStart:null,pauseStart:null,totalPaused:0};
+  clearInterval(_iv); _iv=null;
+  localStorage.removeItem(KEY_TIMER);
+  document.getElementById('timer').textContent='00:00:00';
+  document.getElementById('tmeta').textContent='\u00a0';
+  document.title='Focus Session Tracker';
+  _breakShown=false;
+  dismissBreak();
+  applyUI('idle');
+  renderLog();
+}
+
+/* ─── DISCARD SAVED SESSION ───────────────────────────────────── */
+/*
+   Removes a specific saved session by its startTs (unique timestamp).
+   Called from the ✕ button on each today's-session row.
+*/
+function discardSession(startTs){
+  const ok=confirm('Remove this session from the log?\n\nThis cannot be undone.');
+  if(!ok)return;
+  const arr=loadSessions().filter(s=>s.startTs!==startTs);
+  localStorage.setItem(KEY_SESSIONS,JSON.stringify(arr));
+  renderLog();
+}
+
+/* ─── SESSION STORAGE ─────────────────────────────────────────── */
+function loadSessions(){
+  try{
+    const raw=JSON.parse(localStorage.getItem(KEY_SESSIONS))||[];
+    const out=raw
+      .filter(s=>s && Number.isFinite(s.startTs) && Number.isFinite(s.duration) && s.duration>=0)
+      .map(s=>{
+        const startTs=Number(s.startTs);
+        const duration=Number(s.duration);
+        const endTs=Number.isFinite(s.endTs) ? Number(s.endTs) : startTs+duration;
+        const date=(typeof s.date==='string' && /^\d{4}-\d{2}-\d{2}$/.test(s.date)) ? s.date : dk(startTs);
+        return {...s,startTs,duration,endTs,date};
+      });
+    out.sort((a,b)=>a.startTs-b.startTs);
+    return out;
+  }catch(e){return[];}
+}
+
+/* ─── STREAK ──────────────────────────────────────────────────── */
+/*
+   Counts consecutive days (ending today or yesterday) with ≥1 session.
+   If today has study: count from today backward.
+   If today has no study yet: count from yesterday backward.
+   Safety cap: 730 iterations (2 years max).
+*/
+function calcStreak(byDay){
+  const cur=new Date();
+  if(!byDay[dk(cur.getTime())])cur.setDate(cur.getDate()-1);
+  let streak=0;
+  for(let i=0;i<730;i++){
+    if(!byDay[dk(cur.getTime())])break;
+    streak++; cur.setDate(cur.getDate()-1);
+  }
+  return streak;
+}
+
+/* ─── RENDER LOG ──────────────────────────────────────────────── */
+let logRange='today';
+function setLogRange(range){
+  logRange=range;
+  document.getElementById('log-range-today')?.classList.toggle('active',range==='today');
+  document.getElementById('log-range-week')?.classList.toggle('active',range==='week');
+  document.getElementById('log-range-month')?.classList.toggle('active',range==='month');
+  const hdr=document.getElementById('log-hdr');
+  if(hdr){
+    hdr.textContent=range==='today'?'Today’s Sessions':range==='week'?'This Week’s Sessions':'This Month’s Sessions';
+  }
+  renderLog();
+}
+
+function renderLog(){
+  const sessions=loadSessions();
+  const today=dk();
+  let todayMs=0,weekMs=0,monthMs=0,allTime=0;
+  let todaySessions=[];
+  const byDay={};
+
+  sessions.forEach(s=>{
+    const key=s.date||dk(s.startTs);
+    allTime+=s.duration;
+    byDay[key]=(byDay[key]||0)+s.duration;
+    if(key===today){todayMs+=s.duration;todaySessions.push(s);}
+    if(inWeek(s.startTs)) weekMs+=s.duration;
+    if(inMonth(s.startTs)) monthMs+=s.duration;
+  });
+
+  // BUG FIX: Include the currently running/paused session in all stat totals and byDay.
+  // Without this: stats freeze at boot value; streak won't count today until you Stop.
+  if(ts.status==='running'||ts.status==='paused'){
+    const e=elapsed();
+    todayMs+=e; weekMs+=e; monthMs+=e; allTime+=e;
+    byDay[today]=(byDay[today]||0)+e; // ensures calcStreak counts today's live session
+  }
+  const allDays=Object.keys(byDay).length;
+  const avgMs=allDays>0?Object.values(byDay).reduce((a,v)=>a+v,0)/allDays:0;
+
+  const streak=calcStreak(byDay);
+
+  document.getElementById('s-today').textContent  =fmtHM(todayMs);
+  document.getElementById('s-week').textContent   =fmtHM(weekMs);
+  document.getElementById('s-month').textContent  =fmtHM(monthMs);
+  document.getElementById('s-avg').textContent    =fmtHM(avgMs);
+  document.getElementById('s-streak').textContent =streak+(streak===1?'\u202Fday':'\u202Fdays');
+  document.getElementById('s-alltime').textContent=fmtHM(allTime);
+
+  renderGraphs();
+
+  // Sessions list by selected range, newest first
+  const listEl=document.getElementById('log-list');
+  const shownSessions=
+    logRange==='today' ? todaySessions :
+    logRange==='week'  ? sessions.filter(s=>inWeek(s.startTs)) :
+                         sessions.filter(s=>inMonth(s.startTs));
+  if(!shownSessions.length){
+    listEl.innerHTML='<div class="log-empty">No sessions yet.<br>Start your first focused session.</div>';
+    return;
+  }
+  listEl.innerHTML=shownSessions.slice().sort((a,b)=>b.startTs-a.startTs).map(s=>
+    `<div class="log-row">
+      <span class="log-time">${s.manual?'Manual entry':fmtT(s.startTs)+'\u2009\u2013\u2009'+fmtT(s.endTs)}</span>
+      <span class="log-dur">${fmtDur(s.duration)}</span>
+      <button class="log-discard" onclick="discardSession(${s.startTs})" title="Discard this session">✕</button>
+    </div>`
+  ).join('');
+}
+
+/* ─── BREAK REMINDER ──────────────────────────────────────────── */
+/*
+   After 90 continuous minutes, show a gentle toast.
+   Fires once per session — dismissed state resets on Stop/Start.
+   Why: research shows 90-min ultradian cycles; a break boosts retention.
+*/
+let _breakShown=false;
+let _breakTimer=null;
+const BREAK_MS=90*60*1000;
+function checkBreakReminder(){
+  if(_breakShown||ts.status!=='running') return;
+  if(elapsed()>=BREAK_MS){
+    _breakShown=true;
+    document.getElementById('break-toast').classList.add('show');
+    // Auto-dismiss after 12 seconds — clear any existing timer first
+    if(_breakTimer) clearTimeout(_breakTimer);
+    _breakTimer=setTimeout(dismissBreak,12000);
+  }
+}
+function dismissBreak(){
+  if(_breakTimer){clearTimeout(_breakTimer);_breakTimer=null;}
+  document.getElementById('break-toast').classList.remove('show');
+}
+
+function openCountdownSettings(){
+  document.getElementById('cd-name-input').value=appConfig.countdownName||'';
+  document.getElementById('cd-date-input').value=appConfig.countdownDate||'';
+  document.getElementById('countdown-settings-modal').classList.add('open');
+}
+function closeCountdownSettings(){
+  document.getElementById('countdown-settings-modal').classList.remove('open');
+}
+function saveCountdownSettings(){
+  const name=(document.getElementById('cd-name-input').value||'').trim();
+  const date=(document.getElementById('cd-date-input').value||'').trim();
+  appConfig.countdownName=name||'Your Goal';
+  appConfig.countdownDate=date;
+  saveConfig();
+  closeCountdownSettings();
+  tickCD();
+}
+
+/* ─── DATA EXPORT ─────────────────────────────────────────────── */
+function openExport(){
+  const sessions=loadSessions();
+  const total=sessions.reduce((a,s)=>a+s.duration,0);
+  const days=new Set(sessions.map(s=>s.date||dk(s.startTs))).size;
+  document.getElementById('exp-sub').textContent=
+    sessions.length+' session'+(sessions.length===1?'':'s')+' across '+days+' day'+(days===1?'':'s');
+  document.getElementById('exp-stats').textContent=
+    'Total studied: '+fmtHM(total)+
+    '  ·  Avg/day: '+fmtHM(days>0?total/days:0);
+  document.getElementById('export-modal').classList.add('open');
+}
+function closeExport(){
+  document.getElementById('export-modal').classList.remove('open');
+}
+
+function openClear(){
+  document.getElementById('clear-modal').classList.add('open');
+}
+function closeClear(){
+  document.getElementById('clear-modal').classList.remove('open');
+}
+
+/* ─── ADD HOURS MANUALLY ──────────────────────────────────────── */
+function openAddHours(){
+  // Default date to today
+  const d=new Date();
+  const dateStr=d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate());
+  document.getElementById('ah-date').value=dateStr;
+  document.getElementById('ah-hours').value='1';
+  document.getElementById('ah-minutes').value='0';
+  document.getElementById('add-hours-modal').classList.add('open');
+}
+function closeAddHours(){
+  document.getElementById('add-hours-modal').classList.remove('open');
+}
+function saveManualHours(){
+  const dateVal=document.getElementById('ah-date').value;
+  const hrs=parseInt(document.getElementById('ah-hours').value)||0;
+  const mins=parseInt(document.getElementById('ah-minutes').value)||0;
+
+  if(!dateVal){alert('Please select a date.');return;}
+  if(hrs===0&&mins===0){alert('Please enter a duration greater than 0.');return;}
+  if(hrs<0||mins<0||mins>59||hrs>23){alert('Invalid hours or minutes.');return;}
+
+  const durMs=(hrs*3600+mins*60)*1000;
+  // Use noon on the selected date as a synthetic startTs so inWeek/inMonth work correctly
+  const startBase=new Date(dateVal+'T12:00:00').getTime();
+  const arr=loadSessions();
+  const used=new Set(arr.map(s=>s.startTs));
+  let startTs=startBase;
+  while(used.has(startTs)) startTs+=1;
+  const endTs=startTs+durMs;
+  const dateKey=dateVal; // already in YYYY-MM-DD
+
+  arr.push({date:dateKey,startTs,endTs,duration:durMs,manual:true});
+  try{
+    localStorage.setItem(KEY_SESSIONS,JSON.stringify(arr));
+  }catch(e){
+    alert('Storage full — could not save. Please export and clear old data.');
+    return;
+  }
+  closeAddHours();
+  renderLog();
+}
+const MODAL_CLOSE_HANDLERS={
+  'export-modal': closeExport,
+  'add-hours-modal': closeAddHours,
+  'clear-modal': closeClear,
+  'countdown-settings-modal': closeCountdownSettings,
+  'day-settings-modal': closeDaySettings
+};
+function anyModalOpen(){
+  return Object.keys(MODAL_CLOSE_HANDLERS).some(id=>document.getElementById(id)?.classList.contains('open'));
+}
+document.addEventListener('click',e=>{
+  for(const [id,closeFn] of Object.entries(MODAL_CLOSE_HANDLERS)){
+    const modal=document.getElementById(id);
+    if(e.target===modal){ closeFn(); break; }
+  }
+});
+// Close on Escape (captured early so timer shortcuts won't fire)
+document.addEventListener('keydown',e=>{
+  if(e.code!=='Escape') return;
+  for(const [id,closeFn] of Object.entries(MODAL_CLOSE_HANDLERS)){
+    if(document.getElementById(id)?.classList.contains('open')){
+      e.stopImmediatePropagation();
+      closeFn();
+      break;
+    }
+  }
+},{capture:true});
+
+function exportCSV(){
+  const sessions=loadSessions();
+  if(!sessions.length){alert('No sessions to export yet.');return;}
+  const header='Date,Start Time,End Time,Duration (HH:MM:SS),Duration (minutes)';
+  const rows=sessions.map(s=>{
+    const d=new Date(s.startTs);
+    const date=s.date|| (d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate()));
+    const durMins=Math.round(s.duration/60000);
+    return [date,fmtT(s.startTs),fmtT(s.endTs),fmtDur(s.duration),durMins].join(',');
+  });
+  const csv=[header,...rows].join('\n');
+  const blob=new Blob([csv],{type:'text/csv;charset=utf-8;'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');
+  a.href=url; a.download='focus-session-log-'+dk()+'.csv';
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  setTimeout(()=>URL.revokeObjectURL(url), 250);
+  closeExport();
+}
+
+function exportJSON(){
+  const sessions=loadSessions();
+  if(!sessions.length){alert('No sessions to export yet.');return;}
+  const payload={
+    exportedAt:new Date().toISOString(),
+    totalSessions:sessions.length,
+    totalMs:sessions.reduce((a,s)=>a+s.duration,0),
+    sessions
+  };
+  const blob=new Blob([JSON.stringify(payload,null,2)],{type:'application/json'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');
+  a.href=url; a.download='focus-session-backup-'+dk()+'.json';
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  setTimeout(()=>URL.revokeObjectURL(url), 250);
+  closeExport();
+}
+
+function copyText(){
+  const sessions=loadSessions();
+  const total=sessions.reduce((a,s)=>a+s.duration,0);
+  const days=new Set(sessions.map(s=>s.date||dk(s.startTs))).size;
+  const byDay={};
+  sessions.forEach(s=>{const k=s.date||dk(s.startTs);byDay[k]=(byDay[k]||0)+s.duration;});
+  const streak=calcStreak(byDay);
+  const allTime=fmtHM(total);
+  const avgDay=fmtHM(days>0?total/days:0);
+  const todayMs=byDay[dk()]||0;
+
+  const text=[
+    'Focus Session Summary ('+new Date().toDateString()+')',
+    '─────────────────────────────',
+    'Today         : '+fmtHM(todayMs),
+    'All-Time      : '+allTime,
+    'Days Studied  : '+days,
+    'Avg / Day     : '+avgDay,
+    'Current Streak: '+streak+(streak===1?' day':' days'),
+    '─────────────────────────────',
+    'Exported from Focus Session Tracker'
+  ].join('\n');
+
+  navigator.clipboard.writeText(text)
+    .then(()=>{
+      const btn=document.getElementById('copy-btn-title');
+      const orig=btn.textContent;
+      btn.textContent='✅ Copied!';
+      setTimeout(()=>{btn.textContent=orig;},2000);
+    })
+    .catch(()=>alert('Copy failed — please copy manually:\n\n'+text));
+}
+
+function confirmClear(scope){
+  const sessions=loadSessions();
+  if(!sessions.length){alert('Nothing to clear.');return;}
+
+  let filtered, label;
+  if(scope==='today'){
+    const today=dk();
+    filtered=sessions.filter(s=>(s.date||dk(s.startTs))===today);
+    label="today's";
+  } else if(scope==='week'){
+    filtered=sessions.filter(s=>inWeek(s.startTs));
+    label="this week's";
+  } else if(scope==='month'){
+    filtered=sessions.filter(s=>inMonth(s.startTs));
+    label="this month's";
+  } else {
+    filtered=sessions;
+    label='ALL';
+  }
+
+  if(!filtered.length){alert('No sessions found for that period.');return;}
+
+  const ok=confirm(
+    'Delete '+filtered.length+' '+label+' session'+(filtered.length===1?'':'s')+'?\n\n'+
+    (scope==='all'?'Download a backup first — ':'')+'This cannot be undone.'
+  );
+  if(!ok)return;
+
+  let remaining;
+  if(scope==='today'){
+    const today=dk();
+    remaining=sessions.filter(s=>(s.date||dk(s.startTs))!==today);
+  } else if(scope==='week'){
+    remaining=sessions.filter(s=>!inWeek(s.startTs));
+  } else if(scope==='month'){
+    remaining=sessions.filter(s=>!inMonth(s.startTs));
+  } else {
+    remaining=[];
+  }
+
+  if(remaining.length){
+    localStorage.setItem(KEY_SESSIONS,JSON.stringify(remaining));
+  } else {
+    localStorage.removeItem(KEY_SESSIONS);
+  }
+
+  // If clearing all, also reset live timer state
+  if(scope==='all'){
+    localStorage.removeItem(KEY_TIMER);
+    ts={status:'idle',sessionStart:null,pauseStart:null,totalPaused:0};
+    clearInterval(_iv); _iv=null;
+    _breakShown=false;
+    dismissBreak();
+    document.getElementById('timer').textContent='00:00:00';
+    document.getElementById('tmeta').textContent='\u00a0';
+    document.title='Focus Session Tracker';
+    applyUI('idle');
+  }
+
+  renderLog();
+  closeClear();
+  closeExport();
+}
+
+/* ─── NIGHT SKY BACKGROUND ────────────────────────────────────── */
+(function(){
+  const canvas = document.getElementById('star-canvas');
+  const ctx    = canvas.getContext('2d');
+  const W = ()=>canvas.width, H = ()=>canvas.height;
+
+  // BUG FIX: nebulaDone must reset on resize so nebula rebuilds at new size.
+  // Previously it stayed true after resize, so the old wrong-sized canvas
+  // kept being stamped onto the resized main canvas.
+  let nebulaDone=false, nebulaCanvas=null;
+
+  function resize(){
+    canvas.width  = window.innerWidth;
+    canvas.height = window.innerHeight;
+    nebulaDone=false;         // force nebula rebuild at new dimensions
+  }
+  resize();
+  window.addEventListener('resize', resize);
+
+  /* ── 1. STARS ────────────────────────────────────────────────── */
+  const COLOURS=[
+    'rgba(196,162,70,','rgba(222,187,96,',
+    'rgba(116,96,42,', 'rgba(219,211,190,',
+  ];
+  function mkStar(){
+    const type=Math.random()<0.6?'drift':'twinkle';
+    return {
+      type,
+      x:Math.random()*window.innerWidth,
+      y:Math.random()*window.innerHeight,
+      r:Math.random()*1.1+0.3,
+      col:COLOURS[Math.floor(Math.random()*COLOURS.length)],
+      vx:(Math.random()-0.5)*0.18, vy:(Math.random()-0.5)*0.12,
+      phase:Math.random()*Math.PI*2,
+      freq:0.004+Math.random()*0.008,
+      baseAlpha:0.1+Math.random()*0.35,
+    };
+  }
+  const stars=Array.from({length:110},mkStar);
+
+  /* ── 1b. FIREFLIES ───────────────────────────────────────────── */
+  /*
+     Slow golden lantern-like motes drifting in the dark.
+     Much larger than stars, very slow movement, soft radial glow.
+     Add depth and warmth to the night atmosphere.
+  */
+  function mkFirefly(){
+    return {
+      x: Math.random()*window.innerWidth,
+      y: Math.random()*window.innerHeight,
+      r: 1.4+Math.random()*1.2,
+      vx: (Math.random()-0.5)*0.22,
+      vy: (Math.random()-0.5)*0.14,
+      phase: Math.random()*Math.PI*2,
+      freq:  0.003+Math.random()*0.005,
+      baseAlpha: 0.18+Math.random()*0.22,
+    };
+  }
+  const fireflies=Array.from({length:18},mkFirefly);
+  /* ── 3. SHOOTING STARS ───────────────────────────────────────── */
+  let shooters=[];
+  let nextShoot=300+Math.floor(Math.random()*300);
+
+  function spawnShooter(){
+    const sx=Math.random()*W()*0.6;
+    const sy=Math.random()*H()*0.35;
+    const angle=(Math.PI/6)+(Math.random()*Math.PI/9);
+    const speed=5+Math.random()*4;
+    shooters.push({
+      x:sx, y:sy,
+      vx:Math.cos(angle)*speed, vy:Math.sin(angle)*speed,
+      length:90+Math.random()*80, life:1.0,
+      decay:0.022+Math.random()*0.012,
+    });
+  }
+
+  function drawShooters(){
+    shooters=shooters.filter(s=>s.life>0);
+    for(const s of shooters){
+      s.x+=s.vx; s.y+=s.vy; s.life-=s.decay;
+      const alpha=s.life*0.6;
+      const ang=Math.atan2(s.vy,s.vx);
+      const tx=s.x-Math.cos(ang)*s.length;
+      const ty=s.y-Math.sin(ang)*s.length;
+      const grad=ctx.createLinearGradient(tx,ty,s.x,s.y);
+      grad.addColorStop(0,'rgba(222,187,96,0)');
+      grad.addColorStop(0.6,`rgba(222,187,96,${(alpha*0.4).toFixed(3)})`);
+      grad.addColorStop(1,`rgba(235,215,140,${alpha.toFixed(3)})`);
+      ctx.save();
+      ctx.strokeStyle=grad; ctx.lineWidth=1.2; ctx.lineCap='round';
+      ctx.beginPath(); ctx.moveTo(tx,ty); ctx.lineTo(s.x,s.y); ctx.stroke();
+      ctx.beginPath(); ctx.arc(s.x,s.y,1.1,0,Math.PI*2);
+      ctx.fillStyle=`rgba(240,220,160,${(alpha*0.9).toFixed(3)})`; ctx.fill();
+      ctx.restore();
+    }
+  }
+
+  /* ── 4. NEBULA WISPS ─────────────────────────────────────────── */
+  /*
+     BUG FIX 3 — broken scale+coordinate math made wisps invisible.
+       Previous code called nc.scale(rx/max, ry/max) to make an ellipse,
+       then manually divided the arc center by those same scale factors —
+       which is wrong (you don't divide coords when using ctx.scale()).
+       Also the radialGradient was created in unscaled space while the
+       arc was drawn in scaled space, so gradient and shape mismatched.
+     BUG FIX 4 — opacity was 0.015–0.022 (completely invisible).
+       Now using 0.07–0.10, still soft and non-distracting.
+     Fix: use ctx.ellipse() which needs no manual coordinate juggling,
+       and create the gradient in the same unscaled coordinate space.
+  */
+  function buildNebula(){
+    nebulaCanvas=document.createElement('canvas');
+    nebulaCanvas.width=W(); nebulaCanvas.height=H();
+    const nc=nebulaCanvas.getContext('2d');
+    const wisps=[
+      {x:W()*0.14,y:H()*0.20,rx:W()*0.20,ry:H()*0.13,col:[196,162,70],a:0.09},
+      {x:W()*0.72,y:H()*0.54,rx:W()*0.16,ry:H()*0.11,col:[116, 96,42],a:0.07},
+      {x:W()*0.42,y:H()*0.80,rx:W()*0.22,ry:H()*0.09,col:[196,162,70],a:0.07},
+    ];
+    for(const w of wisps){
+      // Gradient uses the larger radius so it fills the ellipse properly
+      const maxR=Math.max(w.rx,w.ry);
+      const g=nc.createRadialGradient(w.x,w.y,0,w.x,w.y,maxR);
+      g.addColorStop(0,`rgba(${w.col},${w.a})`);
+      g.addColorStop(1,'rgba(0,0,0,0)');
+      nc.save();
+      // Scale y-axis to squash circle into ellipse — gradient stays in original space
+      nc.translate(w.x,w.y);
+      nc.scale(1, w.ry/w.rx);
+      nc.translate(-w.x,-w.y);
+      nc.fillStyle=g;
+      nc.beginPath();
+      nc.arc(w.x,w.y,w.rx,0,Math.PI*2);
+      nc.fill();
+      nc.restore();
+    }
+    nebulaDone=true;
+  }
+
+  /* ── MAIN LOOP ───────────────────────────────────────────────── */
+  let frame=0;
+  function draw(){
+    frame++;
+    ctx.clearRect(0,0,W(),H());
+
+    // Nebula (pre-rendered offscreen, rebuilt on resize)
+    if(!nebulaDone) buildNebula();
+    if(nebulaCanvas) ctx.drawImage(nebulaCanvas,0,0);
+
+    // Moon intentionally removed per UI preference.
+
+    // Stars
+    for(const p of stars){
+      if(p.type==='drift'){
+        p.x+=p.vx; p.y+=p.vy;
+        if(p.x<-4) p.x=W()+4; if(p.x>W()+4) p.x=-4;
+        if(p.y<-4) p.y=H()+4; if(p.y>H()+4) p.y=-4;
+      }
+      const alpha=p.baseAlpha*(0.45+0.55*Math.abs(Math.sin(frame*p.freq+p.phase)));
+      ctx.beginPath(); ctx.arc(p.x,p.y,p.r,0,Math.PI*2);
+      ctx.fillStyle=p.col+alpha.toFixed(3)+')'; ctx.fill();
+    }
+
+    // Fireflies — slow-drifting golden motes with soft glow
+    for(const f of fireflies){
+      f.x+=f.vx; f.y+=f.vy;
+      if(f.x<-10) f.x=W()+10; if(f.x>W()+10) f.x=-10;
+      if(f.y<-10) f.y=H()+10; if(f.y>H()+10) f.y=-10;
+      const a=f.baseAlpha*(0.3+0.7*Math.abs(Math.sin(frame*f.freq+f.phase)));
+      // Soft radial halo
+      const g=ctx.createRadialGradient(f.x,f.y,0,f.x,f.y,f.r*5);
+      g.addColorStop(0,`rgba(222,187,96,${(a*0.9).toFixed(3)})`);
+      g.addColorStop(0.4,`rgba(196,162,70,${(a*0.25).toFixed(3)})`);
+      g.addColorStop(1,'rgba(196,162,70,0)');
+      ctx.beginPath(); ctx.arc(f.x,f.y,f.r*5,0,Math.PI*2);
+      ctx.fillStyle=g; ctx.fill();
+      // Bright core
+      ctx.beginPath(); ctx.arc(f.x,f.y,f.r,0,Math.PI*2);
+      ctx.fillStyle=`rgba(240,215,140,${(a*1.0).toFixed(3)})`; ctx.fill();
+    }
+
+    // Shooting stars
+    if(--nextShoot<=0){
+      spawnShooter();
+      nextShoot=480+Math.floor(Math.random()*540);
+    }
+    drawShooters();
+
+    // Horizon mist — subtle warm glow at the bottom edge
+    const mist=ctx.createLinearGradient(0,H()*0.78,0,H());
+    mist.addColorStop(0,'rgba(0,0,0,0)');
+    mist.addColorStop(1,'rgba(18,12,4,0.38)');
+    ctx.fillStyle=mist;
+    ctx.fillRect(0,H()*0.78,W(),H()*0.22);
+
+    requestAnimationFrame(draw);
+  }
+  draw();
+})();
+
+/*
+   Space  → Start if idle, Pause/Resume if active
+   Escape → Stop (only if session is active — prevents accidental stops)
+   Why: hands on keyboard while studying = zero friction to control timer.
+   Guard: ignore if focus is on an input element.
+*/
+document.addEventListener('keydown', e=>{
+  if(e.target.tagName==='INPUT'||e.target.tagName==='TEXTAREA') return;
+  if(anyModalOpen()) return;
+  if(e.code==='Space'){
+    e.preventDefault();
+    if(ts.status==='idle') timerStart();
+    else timerPause();
+  } else if(e.code==='Escape'){
+    if(ts.status!=='idle') timerStop();
+  }
+});
+
+/* ─── CONFIGURE DAY / RIGHT NOW ───────────────────────────────── */
+const DEFAULT_DAY_PLAN=[
+  {start:'09:00',end:'11:00',label:'Deep Work'}
+];
+const LEGACY_DEFAULT_DAY_PLAN=[
+  {start:'07:00',end:'09:00',label:'Deep Work'},
+  {start:'09:00',end:'09:30',label:'Break'},
+  {start:'09:30',end:'12:00',label:'Study Session'},
+  {start:'14:00',end:'16:00',label:'Project Work'},
+  {start:'16:00',end:'17:00',label:'Revision'}
+];
+function loadDayPlan(){
+  try{
+    const p=JSON.parse(localStorage.getItem(KEY_DAY_PLAN)||'null');
+    if(Array.isArray(p)&&p.length){
+      // Migration: replace legacy auto-seeded 5-block plan with new single-block default.
+      if(JSON.stringify(p)===JSON.stringify(LEGACY_DEFAULT_DAY_PLAN)){
+        localStorage.setItem(KEY_DAY_PLAN, JSON.stringify(DEFAULT_DAY_PLAN));
+        return DEFAULT_DAY_PLAN;
+      }
+      return p;
+    }
+    return DEFAULT_DAY_PLAN;
+  }catch(e){ return DEFAULT_DAY_PLAN; }
+}
+function saveDayPlan(plan){ localStorage.setItem(KEY_DAY_PLAN,JSON.stringify(plan)); }
+function toMinutes(hhmm){ const [h,m]=(hhmm||'').split(':').map(Number); return h*60+m; }
+function fmtMinLeft(mins){
+  const h=Math.floor(mins/60), m=mins%60;
+  if(h>0&&m>0) return h+'h '+m+'m left';
+  if(h>0) return h+'h left';
+  return m+'m left';
+}
+function openDaySettings(){
+  renderDayPlanFields(loadDayPlan());
+  document.getElementById('day-settings-modal').classList.add('open');
+}
+function closeDaySettings(){ document.getElementById('day-settings-modal').classList.remove('open'); }
+function renderDayPlanFields(plan){
+  const host=document.getElementById('day-plan-fields');
+  host.innerHTML=(plan||[]).map((row,i)=>`<div class="ah-row" style="margin-bottom:8px;align-items:center">
+    <input class="ah-input" type="time" value="${row.start||''}" id="dp-start-${i}" />
+    <input class="ah-input" type="time" value="${row.end||''}" id="dp-end-${i}" />
+    <input class="ah-input" type="text" maxlength="40" placeholder="Activity" value="${(row.label||'').replace(/"/g,'&quot;')}" id="dp-label-${i}" />
+    <button class="day-row-del" type="button" onclick="removeDayPlanRow(${i})" title="Delete block">✕</button>
+  </div>`).join('');
+}
+function removeDayPlanRow(idx){
+  const rows=[...document.querySelectorAll('#day-plan-fields .ah-row')].map((_,i)=>({
+    start:document.getElementById('dp-start-'+i)?.value||'',
+    end:document.getElementById('dp-end-'+i)?.value||'',
+    label:(document.getElementById('dp-label-'+i)?.value||'').trim()
+  }));
+  rows.splice(idx,1);
+  renderDayPlanFields(rows);
+}
+function addDayPlanRow(){
+  const existing=[...document.querySelectorAll('#day-plan-fields .ah-row')].map((_,i)=>({
+    start:document.getElementById('dp-start-'+i)?.value||'',
+    end:document.getElementById('dp-end-'+i)?.value||'',
+    label:(document.getElementById('dp-label-'+i)?.value||'').trim()
+  }));
+  const plan=existing.length?existing:loadDayPlan();
+  plan.push({start:'',end:'',label:''});
+  renderDayPlanFields(plan);
+}
+function saveDaySettings(){
+  const rows=[...document.querySelectorAll('#day-plan-fields .ah-row')].map((_,i)=>({
+    start:document.getElementById('dp-start-'+i)?.value||'',
+    end:document.getElementById('dp-end-'+i)?.value||'',
+    label:(document.getElementById('dp-label-'+i)?.value||'').trim()
+  })).filter(r=>r.start&&r.end&&r.label);
+  if(!rows.length){ alert('Please add at least one valid block.'); return; }
+  rows.sort((a,b)=>toMinutes(a.start)-toMinutes(b.start));
+  saveDayPlan(rows);
+  closeDaySettings();
+  tickNow();
+}
+function tickNow(){
+  const now=new Date();
+  const cur=now.getHours()*60+now.getMinutes();
+  const plan=loadDayPlan();
+  const blocks=plan.map(p=>({start:toMinutes(p.start),end:toMinutes(p.end),label:p.label})).filter(p=>Number.isFinite(p.start)&&Number.isFinite(p.end)&&p.end>p.start);
+  const active=blocks.find(b=>cur>=b.start&&cur<b.end);
+  const wrap=document.getElementById('now-wrap');
+  if(!active){
+    wrap.className='now-wrap';
+    document.getElementById('now-label').textContent='No block active';
+    document.getElementById('now-block-name').textContent='No activity scheduled right now';
+    document.getElementById('now-time-left').textContent='—';
+    document.getElementById('now-next').textContent='Open settings to configure your day';
+    document.getElementById('now-progress-fill').style.width='0%';
+    return;
+  }
+  const idx=blocks.indexOf(active);
+  const next=blocks[idx+1];
+  const pct=Math.min(100,Math.round(((cur-active.start)/(active.end-active.start))*100));
+  wrap.className='now-wrap study-block';
+  document.getElementById('now-label').textContent='Current Block';
+  document.getElementById('now-block-name').textContent=active.label;
+  document.getElementById('now-time-left').textContent=fmtMinLeft(active.end-cur);
+  document.getElementById('now-next').textContent=next?('Next: '+next.label):'Last block of the day';
+  document.getElementById('now-progress-fill').style.width=pct+'%';
+}
+tickNow();
+setInterval(tickNow, 30000); // refresh every 30s
+
+/* ─── GRAPHS ──────────────────────────────────────────────────── */
+let graphRange='weekly';
+let graphMonthOffset=0;
+let graphStyle='bar';
+
+function setGraphRange(range){
+  graphRange=range;
+  document.getElementById('graph-range-7')?.classList.toggle('active',range==='weekly');
+  document.getElementById('graph-range-14')?.classList.toggle('active',range==='biweekly');
+  document.getElementById('graph-range-month')?.classList.toggle('active',range==='monthly');
+  document.getElementById('graph-month-nav')?.classList.toggle('show',range==='monthly');
+  renderGraphs();
+}
+
+function setGraphStyle(style){
+  graphStyle=style;
+  document.getElementById('graph-style-bar')?.classList.toggle('active',style==='bar');
+  document.getElementById('graph-style-line')?.classList.toggle('active',style==='line');
+  document.getElementById('graph-style-area')?.classList.toggle('active',style==='area');
+  renderGraphs();
+}
+
+function changeGraphMonth(delta){
+  graphMonthOffset+=delta;
+  renderGraphs();
+}
+
+function getRangeDays(){
+  const now=new Date();
+  if(graphRange==='weekly') return {days:7, end:new Date(now.getFullYear(),now.getMonth(),now.getDate())};
+  if(graphRange==='biweekly') return {days:14, end:new Date(now.getFullYear(),now.getMonth(),now.getDate())};
+  const base=new Date(now.getFullYear(), now.getMonth()+graphMonthOffset, 1);
+  const daysInMonth=new Date(base.getFullYear(), base.getMonth()+1, 0).getDate();
+  const end=new Date(base.getFullYear(), base.getMonth(), daysInMonth);
+  return {days:daysInMonth, end, monthBase:base};
+}
+
+function renderGraphs(){
+  const canvas=document.getElementById('graph-canvas');
+  if(!canvas) return;
+  const rect=canvas.getBoundingClientRect();
+  const dpr=window.devicePixelRatio||1;
+  const targetW=Math.max(640, Math.floor(rect.width*dpr));
+  const targetH=Math.max(420, Math.floor(rect.height*dpr));
+  if(canvas.width!==targetW||canvas.height!==targetH){
+    canvas.width=targetW;
+    canvas.height=targetH;
+  }
+  const ctx=canvas.getContext('2d');
+  const sessions=loadSessions();
+  const todayKey=dk();
+  const byDay={};
+  sessions.forEach(s=>{
+    const k=s.date||dk(s.startTs);
+    byDay[k]=(byDay[k]||0)+s.duration;
+  });
+  if(ts.status==='running'||ts.status==='paused'){
+    byDay[todayKey]=(byDay[todayKey]||0)+elapsed();
+  }
+
+  const {days,end,monthBase}=getRangeDays();
+  const gTitle=document.getElementById('graph-title');
+  if(gTitle){
+    gTitle.textContent=graphRange==='weekly'?'Last 7 Days':graphRange==='biweekly'?'Last 14 Days':'This Month';
+  }
+  const start=new Date(end); start.setDate(end.getDate()-(days-1));
+  const points=[];
+  for(let i=0;i<days;i++){
+    const d=new Date(start); d.setDate(start.getDate()+i);
+    const key=dk(d.getTime());
+    const ms=byDay[key]||0;
+    points.push({date:d,ms});
+  }
+  const rawMax=Math.max(...points.map(p=>p.ms), 0);
+  const maxScale=Math.max(3600000, Math.ceil(rawMax/1800000)*1800000); // 30-min scale steps
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+  const bg=ctx.createLinearGradient(0,0,canvas.width,canvas.height);
+  bg.addColorStop(0,'rgba(20,30,56,0.85)');
+  bg.addColorStop(1,'rgba(11,17,35,0.95)');
+  ctx.fillStyle=bg;
+  ctx.fillRect(0,0,canvas.width,canvas.height);
+
+  const padX=64, padY=34, h=canvas.height-100, w=canvas.width-padX*2;
+  ctx.strokeStyle='rgba(129,211,255,0.16)';
+  ctx.lineWidth=1;
+  for(let i=0;i<4;i++){
+    const y=padY+(h/3)*i;
+    ctx.beginPath(); ctx.moveTo(padX,y); ctx.lineTo(padX+w,y); ctx.stroke();
+  }
+  const bw=Math.max(5, (w/points.length)-6);
+  points.forEach((_,i)=>{
+    const x=padX+i*(w/points.length)+bw/2;
+    ctx.beginPath();
+    ctx.moveTo(x,padY);
+    ctx.lineTo(x,padY+h);
+    ctx.strokeStyle='rgba(129,211,255,0.10)';
+    ctx.stroke();
+  });
+  if(graphStyle==='bar'){
+    const palette=['#ffd36b','#7bf29e','#78d8ff','#b996ff','#ffa4de','#82ffe8'];
+    points.forEach((p,i)=>{
+      const x=padX+i*(w/points.length)+2;
+      const bh=(p.ms/maxScale)*h;
+      const y=padY+h-bh;
+      const col=palette[i%palette.length];
+      const grad=ctx.createLinearGradient(0,y,0,padY+h);
+      grad.addColorStop(0,col);
+      grad.addColorStop(1,'rgba(31,54,96,0.35)');
+      if(p.ms>0){
+        ctx.fillStyle=grad;
+        const r=Math.min(8,bw/2,bh/2);
+        ctx.beginPath();
+        ctx.moveTo(x,y+bh);
+        ctx.lineTo(x,y+r);
+        ctx.quadraticCurveTo(x,y,x+r,y);
+        ctx.lineTo(x+bw-r,y);
+        ctx.quadraticCurveTo(x+bw,y,x+bw,y+r);
+        ctx.lineTo(x+bw,y+bh);
+        ctx.closePath();
+        ctx.fill();
+      }
+    });
+  } else {
+    const pts=points.map((p,i)=>({
+      x:padX+i*(w/points.length)+bw/2,
+      y:padY+h-(p.ms/maxScale)*h
+    }));
+    const drawSmoothPath=(closeForArea=false)=>{
+      if(!pts.length) return;
+      ctx.beginPath();
+      ctx.moveTo(pts[0].x, pts[0].y);
+      for(let i=0;i<pts.length-1;i++){
+        const cx=(pts[i].x+pts[i+1].x)/2;
+        const cy=(pts[i].y+pts[i+1].y)/2;
+        ctx.quadraticCurveTo(pts[i].x, pts[i].y, cx, cy);
+      }
+      ctx.lineTo(pts[pts.length-1].x, pts[pts.length-1].y);
+      if(closeForArea){
+        ctx.lineTo(pts[pts.length-1].x,padY+h);
+        ctx.lineTo(pts[0].x,padY+h);
+        ctx.closePath();
+      }
+    };
+    if(graphStyle==='area'){
+      const areaGrad=ctx.createLinearGradient(0,padY,0,padY+h);
+      areaGrad.addColorStop(0,'rgba(110,219,255,0.22)');
+      areaGrad.addColorStop(0.6,'rgba(110,219,255,0.09)');
+      areaGrad.addColorStop(1,'rgba(110,219,255,0.01)');
+      drawSmoothPath(true);
+      ctx.fillStyle=areaGrad;
+      ctx.fill();
+    }
+    ctx.strokeStyle='rgba(121,229,255,0.88)';
+    ctx.lineWidth=2.6;
+    drawSmoothPath(false);
+    ctx.stroke();
+    pts.forEach((p)=>{
+      ctx.beginPath();
+      ctx.arc(p.x,p.y,4.5,0,Math.PI*2);
+      ctx.fillStyle='rgba(125,243,255,0.98)';
+      ctx.fill();
+      ctx.strokeStyle='rgba(8,16,36,0.95)';
+      ctx.lineWidth=1.6;
+      ctx.stroke();
+    });
+  }
+
+  ctx.fillStyle='rgba(197,213,255,0.72)';
+  ctx.font='10px Manrope';
+  points.forEach((p,i)=>{
+    const x=padX+i*(w/points.length)+bw/2;
+    const lbl=graphRange==='monthly' ? String(p.date.getDate()) : (p.date.toLocaleDateString(undefined,{weekday:'short'}).slice(0,3));
+    ctx.fillText(lbl, x-10, canvas.height-24);
+  });
+
+  // Y labels (hours)
+  ctx.fillStyle='rgba(197,213,255,0.58)';
+  for(let i=0;i<4;i++){
+    const val=((maxScale*(3-i))/3)/3600000;
+    const y=padY+(h/3)*i+4;
+    const pretty=Number.isInteger(val)?val.toString():val.toFixed(1).replace(/\.0$/,'');
+    ctx.fillText(pretty+'h', 24, y);
+  }
+
+  if(monthBase){
+    document.getElementById('graph-month-label').textContent=monthBase.toLocaleDateString(undefined,{month:'long',year:'numeric'});
+  }
+}
+
+/* ─── BACKGROUND TAB ──────────────────────────────────────────── */
+/*
+   When switching back from a lecture tab, Chrome may throttle
+   setInterval for up to 1 minute. visibilitychange catches the
+   return and immediately snaps the display to the correct time.
+   The underlying elapsed() is always correct since it uses Date.now().
+*/
+document.addEventListener('visibilitychange',()=>{
+  if(!document.hidden){
+    if(ts.status==='running'||ts.status==='paused')refreshDisplay();
+    tickNow(); // Right Now block could be stale after background tab
+  }
+});
+
+/* ─── BOOT ────────────────────────────────────────────────────── */
+loadTS();
+
+if(ts.status==='running'){
+  document.getElementById('tmeta').textContent='Started at\u202F'+fmtT(ts.sessionStart);
+  clearInterval(_iv); _iv=setInterval(refreshDisplay,1000); refreshDisplay();
+  applyUI('running');
+} else if(ts.status==='paused'){
+  document.getElementById('tmeta').textContent='Started at\u202F'+fmtT(ts.sessionStart);
+  refreshDisplay(); applyUI('paused');
+} else {
+  applyUI('idle');
+}
+
+setLogRange('today');
+setGraphRange('weekly');
+setGraphStyle('bar');
+switchMainView('timer');
+
+/* ─── TODAY'S TASKS ───────────────────────────────────────────── */
+const KEY_TASKS = 'focus_tasks_v1';
+
+function loadTasks(){
+  try{ return JSON.parse(localStorage.getItem(KEY_TASKS))||[]; }
+  catch(e){ return []; }
+}
+function saveTasks(tasks){ localStorage.setItem(KEY_TASKS,JSON.stringify(tasks)); }
+
+function updateTasksStat(){
+  const tasks=loadTasks();
+  const todayKey=dk();
+  const todayTasks=tasks.filter(t=>t.date===todayKey);
+  const done=todayTasks.filter(t=>t.done).length;
+  const total=todayTasks.length;
+  const el=document.getElementById('s-tasks');
+  if(el) el.textContent=done+'\u202F/\u202F'+total;
+  const lbl=document.getElementById('tasks-count-lbl');
+  if(lbl) lbl.textContent=total>0?(done+'/'+total+' done'):'';
+}
+
+function renderTasks(){
+  const tasks=loadTasks();
+  const todayKey=dk();
+  const todayTasks=tasks.filter(t=>t.date===todayKey);
+  const el=document.getElementById('tasks-list');
+  if(!todayTasks.length){
+    el.innerHTML='<div class="tasks-empty">No tasks yet — start with one focused task.</div>';
+    updateTasksStat();
+    updateTasksListViewport();
+    return;
+  }
+  // Undone first, done last
+  const sorted=[...todayTasks.filter(t=>!t.done),...todayTasks.filter(t=>t.done)];
+  el.innerHTML=sorted.map(t=>`
+    <div class="task-item${t.done?' done':''}" id="task-${t.id}" onclick="toggleTask(${t.id})">
+      <div class="task-cb"><span class="task-tick">✓</span></div>
+      <span class="task-label">${escHtml(t.text)}</span>
+      <button class="task-del" onclick="event.stopPropagation();deleteTask(${t.id})" title="Delete task">✕</button>
+    </div>`).join('');
+  updateTasksStat();
+  updateTasksListViewport();
+}
+
+function escHtml(s){
+  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+function addTask(){
+  const inp=document.getElementById('task-input');
+  const text=(inp.value||'').trim();
+  if(!text) return;
+  const tasks=loadTasks();
+  let id=Date.now();
+  const used=new Set(tasks.map(t=>t.id));
+  while(used.has(id)) id+=1;
+  tasks.push({id,text,done:false,date:dk()});
+  saveTasks(tasks);
+  inp.value='';
+  renderTasks();
+}
+
+function toggleTask(id){
+  const source=document.getElementById('task-'+id);
+  const tasks=loadTasks();
+  const idx=tasks.findIndex(t=>t.id===id);
+  if(idx===-1) return;
+  tasks[idx].done=!tasks[idx].done;
+  const justCompleted=tasks[idx].done;
+  saveTasks(tasks);
+  if(justCompleted && source) spawnTaskStars(source);
+  renderTasks();
+}
+
+function deleteTask(id){
+  const tasks=loadTasks();
+  saveTasks(tasks.filter(t=>t.id!==id));
+  renderTasks();
+}
+
+function spawnTaskStars(sourceEl){
+  const r=sourceEl.getBoundingClientRect();
+  const cx=r.left+r.width/2;
+  const cy=r.top+r.height/2;
+  const stars=34;
+  for(let i=0;i<stars;i++){
+    const s=document.createElement('span');
+    s.className='task-star';
+    s.textContent='✦';
+    const ang=(Math.PI*2)*(i/stars)+(Math.random()*0.32);
+    const dist=80+Math.random()*Math.max(window.innerWidth,window.innerHeight)*0.35;
+    s.style.left=cx+'px';
+    s.style.top=cy+'px';
+    s.style.setProperty('--dx', (Math.cos(ang)*dist)+'px');
+    s.style.setProperty('--dy', (Math.sin(ang)*dist)+'px');
+    s.style.color=['#87e2ff','#9ef7bb','#f7f78f','#c3a8ff'][i%4];
+    document.body.appendChild(s);
+    setTimeout(()=>s.remove(), 920);
+  }
+}
+
+renderTasks();
+
+</script>
+</body>
+</html>
