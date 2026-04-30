@@ -4,8 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Dream Study</title>
-  <link rel="icon" type="image/svg+xml" href="/dream-study/favicon.svg" />
-  <link rel="shortcut icon" href="/dream-study/favicon.svg" type="image/svg+xml" />
+  <link rel="icon" type="image/svg+xml" href="favicon.svg" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@300;400;500;600&display=swap" rel="stylesheet" />
@@ -331,7 +330,8 @@
       z-index: 1;
     }
 
-    .qs.show { opacity: 1; }
+    .qs.show { opacity: 0; }
+    .quote-wrap:hover .qs.show { opacity: 1; }
 
     /* Gold dot divider between quote and attribution */
     .qs::before {
@@ -1281,8 +1281,9 @@
     .day-add-btn .exp-option-title,
     .day-add-btn .exp-option-desc { color: #eaf5ff; }
 
-    #day-plan-fields input[type="time"]::-webkit-calendar-picker-indicator,
-    #ah-date::-webkit-calendar-picker-indicator {
+    .ah-input[type="date"]::-webkit-calendar-picker-indicator,
+    .ah-input[type="time"]::-webkit-calendar-picker-indicator,
+    #day-plan-fields input[type="time"]::-webkit-calendar-picker-indicator {
       filter: invert(71%) sepia(43%) saturate(846%) hue-rotate(83deg) brightness(96%) contrast(92%);
       cursor: pointer;
     }
@@ -1609,11 +1610,11 @@
       background: linear-gradient(120deg, rgba(76,136,255,0.46), rgba(83,214,255,0.24));
     }
     .site-logo {
-      position: absolute;
-      top: 8px;
+      position: fixed;
+      top: 10px;
       left: 10px;
       width: clamp(48px, 4.5vw, 72px);
-      z-index: 12;
+      z-index: 50;
       display: block;
     }
 
@@ -1903,12 +1904,22 @@
     </div>
     <div class="ah-row">
       <div class="ah-field">
-        <label class="ah-label" for="ah-hours">Hours</label>
-        <input class="ah-input" type="number" id="ah-hours" min="0" max="23" value="1" />
+        <label class="ah-label" for="ah-start">Start Time</label>
+        <input class="ah-input" type="time" id="ah-start" value="09:00" />
       </div>
       <div class="ah-field">
-        <label class="ah-label" for="ah-minutes">Minutes</label>
-        <input class="ah-input" type="number" id="ah-minutes" min="0" max="59" value="0" />
+        <label class="ah-label" for="ah-end">End Time</label>
+        <input class="ah-input" type="time" id="ah-end" value="10:00" />
+      </div>
+    </div>
+    <div class="ah-row">
+      <div class="ah-field">
+        <label class="ah-label" for="ah-hours">Duration Hours</label>
+        <input class="ah-input" type="number" id="ah-hours" min="0" max="23" value="1" readonly />
+      </div>
+      <div class="ah-field">
+        <label class="ah-label" for="ah-minutes">Duration Minutes</label>
+        <input class="ah-input" type="number" id="ah-minutes" min="0" max="59" value="0" readonly />
       </div>
     </div>
     <button class="ah-submit" onclick="saveManualHours()">Save Session</button>
@@ -1963,67 +1974,106 @@ const KEY_DAY_PLAN = 'focus_day_plan_v1';
 
 /* ─── QUOTES ──────────────────────────────────────────────────── */
 const QUOTES = [
-  {t:'Consistency compounds faster than intensity.',s:'James Clear'},
-  {t:'Success is the sum of small efforts repeated daily.',s:'Robert Collier'},
-  {t:'Do what matters, then do it again tomorrow.',s:'Cal Newport'},
-  {t:'Action cures fear.',s:'David J. Schwartz'},
-  {t:'Your future is created by what you do today.',s:'Robert Kiyosaki'},
-  {t:'Small progress is still progress.',s:'Anonymous'},
-  {t:'Discipline is choosing what you want most.',s:'Abraham Lincoln (attributed)'},
-  {t:'Focus is a superpower in a distracted world.',s:'Unknown'},
-  {t:'Well begun is half done.',s:'Aristotle'},
   {t:'The secret of getting ahead is getting started.',s:'Mark Twain'},
-  {t:'Quality means doing it right when no one is watching.',s:'Henry Ford'},
-  {t:'Stay patient and trust your effort.',s:'Anonymous'},
+  {t:'Success is the sum of small efforts, repeated day in and day out.',s:'Robert Collier'},
+  {t:'Discipline is choosing between what you want now and what you want most.',s:'Abraham Lincoln (attributed)'},
+  {t:'Well done is better than well said.',s:'Benjamin Franklin'},
+  {t:'It always seems impossible until it is done.',s:'Nelson Mandela'},
+  {t:'Focus is a matter of deciding what things you are not going to do.',s:'John Carmack'},
+  {t:'The future depends on what you do today.',s:'Mahatma Gandhi'},
+  {t:'Do what you can, with what you have, where you are.',s:'Theodore Roosevelt'},
+  {t:'Quality is not an act, it is a habit.',s:'Aristotle (attributed)'},
+  {t:'Small disciplines repeated with consistency lead to great achievements.',s:'John C. Maxwell'},
+  {t:'Action is the foundational key to all success.',s:'Pablo Picasso'},
+  {t:'Dreams do not work unless you do.',s:'John C. Maxwell'},
+  {t:'Motivation gets you going, but discipline keeps you growing.',s:'John C. Maxwell'},
+  {t:'Do not wish it were easier; wish you were better.',s:'Jim Rohn'},
+  {t:'Either you run the day or the day runs you.',s:'Jim Rohn'},
+  {t:'Success is never owned; it is rented, and rent is due every day.',s:'Rory Vaden'},
+  {t:'Do the hard jobs first. The easy jobs will take care of themselves.',s:'Dale Carnegie'},
+  {t:'You do not have to be great to start, but you have to start to be great.',s:'Zig Ziglar'},
+  {t:'If you are going through hell, keep going.',s:'Winston Churchill'},
+  {t:'Perseverance is not a long race; it is many short races one after the other.',s:'Walter Elliot'},
+  {t:'The best way to predict your future is to create it.',s:'Peter Drucker'},
+  {t:'Success usually comes to those who are too busy to be looking for it.',s:'Henry David Thoreau'},
+  {t:'Do not count the days; make the days count.',s:'Muhammad Ali'},
+  {t:'You miss one hundred percent of the shots you do not take.',s:'Wayne Gretzky'},
+  {t:'The difference between ordinary and extraordinary is that little extra.',s:'Jimmy Johnson'},
+  {t:'Start where you are. Use what you have. Do what you can.',s:'Arthur Ashe'},
+  {t:'A little progress each day adds up to big results.',s:'Satya Nani'},
+  {t:'Do something today that your future self will thank you for.',s:'Sean Patrick Flanery'},
+  {t:'When you feel like quitting, remember why you started.',s:'Anonymous'},
+  {t:'Your habits decide your future.',s:'Jack Canfield'},
+  {t:'What gets scheduled gets done.',s:'Michael Hyatt'},
+  {t:'Deep work is the ability to focus without distraction on a cognitively demanding task.',s:'Cal Newport'},
+  {t:'Clarity about what matters provides clarity about what does not.',s:'Cal Newport'},
+  {t:'To do two things at once is to do neither.',s:'Publilius Syrus'},
+  {t:'Concentrate all your thoughts upon the work in hand.',s:'Alexander Graham Bell'},
+  {t:'Energy and persistence conquer all things.',s:'Benjamin Franklin'},
+  {t:'The man who moves a mountain begins by carrying away small stones.',s:'Confucius'},
+  {t:'I can accept failure; everyone fails at something. But I cannot accept not trying.',s:'Michael Jordan'},
+  {t:'Champions keep playing until they get it right.',s:'Billie Jean King'},
+  {t:'The more difficult the victory, the greater the happiness in winning.',s:'Pele'},
+  {t:'Hard work beats talent when talent does not work hard.',s:'Tim Notke'},
+  {t:'Winners are not people who never fail but people who never quit.',s:'Edwin Louis Cole'},
+  {t:'The will to win is important, but the will to prepare is vital.',s:'Joe Paterno'},
+  {t:'Confidence comes from preparation.',s:'John Wooden'},
+  {t:'Failing to prepare is preparing to fail.',s:'Benjamin Franklin'},
+  {t:'Prepare while others are daydreaming.',s:'William Arthur Ward'},
+  {t:'The pain of discipline weighs ounces; the pain of regret weighs tons.',s:'Jim Rohn'},
+  {t:'Do not stop when you are tired. Stop when you are done.',s:'Marilyn Monroe (attributed)'},
+  {t:'Great things are done by a series of small things brought together.',s:'Vincent van Gogh'},
+  {t:'It is not that I am so smart. But I stay with the questions much longer.',s:'Albert Einstein'},
+  {t:'Live as if you were to die tomorrow. Learn as if you were to live forever.',s:'Mahatma Gandhi'},
   {t:'Learning never exhausts the mind.',s:'Leonardo da Vinci'},
-  {t:'The best way out is always through.',s:'Robert Frost'},
-  {t:'One focused hour beats three distracted ones.',s:'Unknown'},
-  {t:'You do not rise to goals, you fall to systems.',s:'James Clear'},
-  {t:'Great acts are made of small deeds.',s:'Lao Tzu'},
-  {t:'Done is better than perfect.',s:'Sheryl Sandberg'},
-  {t:'Start where you are. Use what you have.',s:'Arthur Ashe'},
-  {t:'Little by little, one travels far.',s:'J.R.R. Tolkien'},
-  {t:'The pain of discipline weighs ounces.',s:'Jim Rohn'},
-  {t:'A river cuts rock through persistence.',s:'James N. Watkins'},
-  {t:'Progress, not perfection.',s:'Anonymous'},
-  {t:'Energy flows where attention goes.',s:'Tony Robbins'},
-  {t:'The main thing is to keep the main thing.',s:'Stephen Covey'},
-  {t:'Do one thing now that matters most.',s:'Anonymous'},
-  {t:'Quiet work creates loud results.',s:'Unknown'},
-  {t:'Effort never betrays.',s:'Unknown'},
-  {t:'Sustained focus beats sporadic hustle.',s:'Unknown'},
-  {t:'Hard choices, easy life.',s:'Jerzy Gregorek'},
-  {t:'Time is life spent; spend it deliberately.',s:'Anonymous'},
-  {t:'Small hinges swing big doors.',s:'W. Clement Stone'},
-  {t:'Momentum begins with one brave minute.',s:'Unknown'},
-  {t:'If it is important, schedule it.',s:'Anonymous'},
-  {t:'Attention is your most valuable asset.',s:'Anonymous'},
-  {t:'Do not count hours, make hours count.',s:'Anonymous'},
-  {t:'Clarity comes from engagement, not thought alone.',s:'Marie Forleo'},
-  {t:'Today is expensive. Spend it wisely.',s:'Anonymous'},
-  {t:'One page, one problem, one step.',s:'Anonymous'},
-  {t:'Your habits write your story.',s:'Unknown'},
-  {t:'Focus is saying no to almost everything.',s:'Steve Jobs'},
-  {t:'The work you avoid is the work that grows you.',s:'Unknown'},
-  {t:'Aim for progress every single day.',s:'Unknown'},
-  {t:'Patience and persistence make you unstoppable.',s:'Anonymous'},
-  {t:'Deep work creates deep results.',s:'Cal Newport'},
-  {t:'You can do hard things for one more minute.',s:'Unknown'},
-  {t:'Make the next decision the right one.',s:'Unknown'},
-  {t:'The future rewards the consistent.',s:'Unknown'},
-  {t:'Do less, but better and with full attention.',s:'Unknown'},
-  {t:'A focused day beats a busy week.',s:'Unknown'},
-  {t:'When in doubt, begin.',s:'Anonymous'},
-  {t:'Small disciplined actions become identity.',s:'Unknown'},
-  {t:'Protect your mornings for important work.',s:'Unknown'},
-  {t:'Your calendar reveals your priorities.',s:'Unknown'},
-  {t:'One distraction can cost an hour.',s:'Anonymous'},
-  {t:'The first step is always the heaviest.',s:'Unknown'},
-  {t:'Intensity fades, systems remain.',s:'Anonymous'},
-  {t:'Success loves consistency more than talent.',s:'Unknown'},
-  {t:'Finish what you start today.',s:'Unknown'},
-  {t:'Stack wins, however small.',s:'Unknown'},
-  {t:'You are one focused session away from momentum.',s:'Unknown'}
+  {t:'An investment in knowledge pays the best interest.',s:'Benjamin Franklin'},
+  {t:'The beautiful thing about learning is nobody can take it away from you.',s:'B.B. King'},
+  {t:'Study hard what interests you the most in the most undisciplined, irreverent and original manner possible.',s:'Richard Feynman'},
+  {t:'Tell me and I forget. Teach me and I remember. Involve me and I learn.',s:'Benjamin Franklin'},
+  {t:'The expert in anything was once a beginner.',s:'Helen Hayes'},
+  {t:'Practice is the hardest part of learning, and training is the essence of transformation.',s:'Ann Voskamp'},
+  {t:'There are no shortcuts to any place worth going.',s:'Beverly Sills'},
+  {t:'Success is where preparation and opportunity meet.',s:'Bobby Unser'},
+  {t:'Today a reader, tomorrow a leader.',s:'Margaret Fuller'},
+  {t:'Knowledge is power.',s:'Francis Bacon'},
+  {t:'The roots of education are bitter, but the fruit is sweet.',s:'Aristotle'},
+  {t:'You are always a student, never a master. You have to keep moving forward.',s:'Conrad Hall'},
+  {t:'In learning you will teach, and in teaching you will learn.',s:'Phil Collins'},
+  {t:'Push yourself, because no one else is going to do it for you.',s:'Anonymous'},
+  {t:'Doubt kills more dreams than failure ever will.',s:'Suzy Kassem'},
+  {t:'Stay patient and trust your journey.',s:'Anonymous'},
+  {t:'Be stronger than your strongest excuse.',s:'Anonymous'},
+  {t:'Discomfort is the currency of your dreams.',s:'Brooke Castillo'},
+  {t:'You do not need more time, you need more focus.',s:'Anonymous'},
+  {t:'A year from now you may wish you had started today.',s:'Karen Lamb'},
+  {t:'The beginning is always today.',s:'Mary Wollstonecraft'},
+  {t:'Greatness is consistency over intensity.',s:'Anonymous'},
+  {t:'One day or day one. You decide.',s:'Paulo Coelho (attributed)'},
+  {t:'Progress is progress, no matter how small.',s:'Anonymous'},
+  {t:'The comeback is always stronger than the setback.',s:'Anonymous'},
+  {t:'Your only limit is your mind.',s:'Anonymous'},
+  {t:'Keep your eyes on the goal and your feet on the ground.',s:'Theodore Roosevelt (attributed)'},
+  {t:'When your why is clear, your how becomes easier.',s:'Jim Rohn'},
+  {t:'Worry less, study more.',s:'Anonymous'},
+  {t:'Be so prepared that luck has to find you.',s:'Anonymous'},
+  {t:'You are one focused session away from momentum.',s:'Anonymous'},
+  {t:'Discipline creates freedom.',s:'Jocko Willink'},
+  {t:'Suffer the pain of discipline or suffer the pain of regret.',s:'Jim Rohn'},
+  {t:'Great performers focus on what they can control.',s:'Anonymous'},
+  {t:'Comparison is the thief of joy; consistency is the builder of results.',s:'Anonymous'},
+  {t:'Your rank is hidden in your routine.',s:'Anonymous'},
+  {t:'Read less randomly, revise more deliberately.',s:'Anonymous'},
+  {t:'Mock tests are mirrors, not verdicts.',s:'Anonymous'},
+  {t:'Make mistakes in practice so you can avoid them in the exam.',s:'Anonymous'},
+  {t:'The chapter you avoid is often the chapter that raises your score.',s:'Anonymous'},
+  {t:'Silence distractions and your mind gets louder in the best way.',s:'Anonymous'},
+  {t:'Consistency is what turns effort into evidence.',s:'Anonymous'},
+  {t:'Strong preparation looks boring from the outside and brilliant on result day.',s:'Anonymous'},
+  {t:'Do today’s work today; tomorrow has its own syllabus.',s:'Anonymous'},
+  {t:'Be present in this page, this problem, this minute.',s:'Anonymous'},
+  {t:'Effort compounds when direction is clear.',s:'Anonymous'},
+  {t:'Calm mind, clear steps, consistent execution.',s:'Anonymous'},
+  {t:'You are not behind if you are improving daily.',s:'Anonymous'},
 ];
 
 function shuffle(a){
@@ -2250,8 +2300,8 @@ function elapsed(){
 function refreshDisplay(){
   const t=fmtDur(elapsed());
   document.getElementById('timer').textContent=t;
-  if(ts.status==='running') document.title='\u25B6\uFE0E '+t+' \u00B7 Focus Session Tracker';
-  else if(ts.status==='paused') document.title='\u23F8\uFE0E '+t+' \u00B7 Focus Session Tracker';
+  if(ts.status==='running') document.title='\u25B6\uFE0E '+t+' \u00B7 Dream Study';
+  else if(ts.status==='paused') document.title='\u23F8\uFE0E '+t+' \u00B7 Dream Study';
   // Load sessions once and share across all dependent updates to avoid 4× localStorage reads per tick
   const _sessions=loadSessions();
   if(activeMainView==='graphs') renderGraphs();
@@ -2354,7 +2404,7 @@ function timerStop(){
   localStorage.removeItem(KEY_TIMER);
   document.getElementById('timer').textContent='00:00:00';
   document.getElementById('tmeta').textContent='\u00a0';
-  document.title='Focus Session Tracker'; // reset tab title
+  document.title='Dream Study'; // reset tab title
   _breakShown=false; // reset break reminder for next session
   dismissBreak();
   applyUI('idle');
@@ -2375,7 +2425,7 @@ function discardLive(){
   localStorage.removeItem(KEY_TIMER);
   document.getElementById('timer').textContent='00:00:00';
   document.getElementById('tmeta').textContent='\u00a0';
-  document.title='Focus Session Tracker';
+  document.title='Dream Study';
   _breakShown=false;
   dismissBreak();
   applyUI('idle');
@@ -2445,6 +2495,37 @@ function setLogRange(range){
   renderLog();
 }
 
+function formatSessionRangeLabel(session,range){
+  const base=fmtT(session.startTs)+' – '+fmtT(session.endTs);
+  if(range==='today') return base;
+  const d=new Date(session.startTs);
+  const monthYear=d.toLocaleDateString(undefined,{month:'short',year:'numeric'});
+  const firstOfMonth=new Date(d.getFullYear(),d.getMonth(),1);
+  const dayOffsetToMonday=(firstOfMonth.getDay()+6)%7;
+  const firstWeekMonday=new Date(firstOfMonth);
+  firstWeekMonday.setDate(firstOfMonth.getDate()-dayOffsetToMonday);
+  firstWeekMonday.setHours(0,0,0,0);
+
+  const thisDateMidnight=new Date(d.getFullYear(),d.getMonth(),d.getDate());
+  const msPerDay=24*60*60*1000;
+  const weekOfMonth=Math.floor((thisDateMidnight-firstWeekMonday)/(7*msPerDay))+1;
+
+  const weekStartDate=new Date(firstWeekMonday);
+  weekStartDate.setDate(firstWeekMonday.getDate()+((weekOfMonth-1)*7));
+  const weekEndDate=new Date(weekStartDate);
+  weekEndDate.setDate(weekStartDate.getDate()+6);
+
+  const monthStart=new Date(d.getFullYear(),d.getMonth(),1);
+  const monthEnd=new Date(d.getFullYear(),d.getMonth()+1,0);
+  const visibleStart=weekStartDate<monthStart ? monthStart : weekStartDate;
+  const visibleEnd=weekEndDate>monthEnd ? monthEnd : weekEndDate;
+
+  const weekStart=visibleStart.toLocaleDateString(undefined,{month:'short',day:'numeric',year:'numeric'});
+  const weekEnd=visibleEnd.toLocaleDateString(undefined,{month:'short',day:'numeric',year:'numeric'});
+  const weekBadge=`<span title="${weekStart} – ${weekEnd}">W${weekOfMonth}</span>`;
+  return `${base} (${monthYear}, ${weekBadge})`;
+}
+
 function renderLog(){
   const sessions=loadSessions();
   const today=dk();
@@ -2494,7 +2575,7 @@ function renderLog(){
   }
   listEl.innerHTML=shownSessions.slice().sort((a,b)=>b.startTs-a.startTs).map(s=>
     `<div class="log-row">
-      <span class="log-time">${s.manual?'Manual entry':fmtT(s.startTs)+'\u2009\u2013\u2009'+fmtT(s.endTs)}</span>
+      <span class="log-time">${formatSessionRangeLabel(s,logRange)}</span>
       <span class="log-dur">${fmtDur(s.duration)}</span>
       <button class="log-discard" onclick="discardSession(${s.startTs})" title="Discard this session">✕</button>
     </div>`
@@ -2572,33 +2653,60 @@ function openAddHours(){
   const d=new Date();
   const dateStr=d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate());
   document.getElementById('ah-date').value=dateStr;
-  document.getElementById('ah-hours').value='1';
-  document.getElementById('ah-minutes').value='0';
+  document.getElementById('ah-start').value='09:00';
+  document.getElementById('ah-end').value='10:00';
+  syncManualDuration();
   document.getElementById('add-hours-modal').classList.add('open');
 }
 function closeAddHours(){
   document.getElementById('add-hours-modal').classList.remove('open');
 }
+function syncManualDuration(){
+  const dateVal=document.getElementById('ah-date')?.value;
+  const startVal=document.getElementById('ah-start')?.value;
+  const endVal=document.getElementById('ah-end')?.value;
+  const hrsEl=document.getElementById('ah-hours');
+  const minsEl=document.getElementById('ah-minutes');
+  if(!hrsEl||!minsEl) return;
+  if(!dateVal||!startVal||!endVal){
+    hrsEl.value='0'; minsEl.value='0';
+    return;
+  }
+  const startTs=new Date(`${dateVal}T${startVal}:00`).getTime();
+  const endTs=new Date(`${dateVal}T${endVal}:00`).getTime();
+  if(!Number.isFinite(startTs)||!Number.isFinite(endTs)||endTs<=startTs){
+    hrsEl.value='0'; minsEl.value='0';
+    return;
+  }
+  const totalMins=Math.round((endTs-startTs)/60000);
+  hrsEl.value=String(Math.floor(totalMins/60));
+  minsEl.value=String(totalMins%60);
+}
+
 function saveManualHours(){
   const dateVal=document.getElementById('ah-date').value;
-  const hrs=parseInt(document.getElementById('ah-hours').value)||0;
-  const mins=parseInt(document.getElementById('ah-minutes').value)||0;
-
+  const startVal=document.getElementById('ah-start').value;
+  const endVal=document.getElementById('ah-end').value;
   if(!dateVal){alert('Please select a date.');return;}
-  if(hrs===0&&mins===0){alert('Please enter a duration greater than 0.');return;}
-  if(hrs<0||mins<0||mins>59||hrs>23){alert('Invalid hours or minutes.');return;}
+  if(!startVal||!endVal){alert('Please enter both start and end time.');return;}
 
-  const durMs=(hrs*3600+mins*60)*1000;
-  // Use noon on the selected date as a synthetic startTs so inWeek/inMonth work correctly
-  const startBase=new Date(dateVal+'T12:00:00').getTime();
+  const startTs=new Date(`${dateVal}T${startVal}:00`).getTime();
+  const endTs=new Date(`${dateVal}T${endVal}:00`).getTime();
+  if(!Number.isFinite(startTs)||!Number.isFinite(endTs)||endTs<=startTs){
+    alert('End time must be later than start time on the same date.');
+    return;
+  }
+
+  const durMs=endTs-startTs;
+
   const arr=loadSessions();
   const used=new Set(arr.map(s=>s.startTs));
-  let startTs=startBase;
-  while(used.has(startTs)) startTs+=1;
-  const endTs=startTs+durMs;
+  let uniqueStartTs=startTs;
+  while(used.has(uniqueStartTs)) uniqueStartTs+=1;
+  const adjustedEndTs=uniqueStartTs+durMs;
   const dateKey=dateVal; // already in YYYY-MM-DD
 
-  arr.push({date:dateKey,startTs,endTs,duration:durMs,manual:true});
+  arr.push({date:dateKey,startTs:uniqueStartTs,endTs:adjustedEndTs,duration:durMs});
   try{
     localStorage.setItem(KEY_SESSIONS,JSON.stringify(arr));
   }catch(e){
@@ -2694,7 +2802,7 @@ function copyText(){
     'Avg / Day     : '+avgDay,
     'Current Streak: '+streak+(streak===1?' day':' days'),
     '─────────────────────────────',
-    'Exported from Focus Session Tracker'
+    'Exported from Dream Study'
   ].join('\n');
 
   navigator.clipboard.writeText(text)
@@ -2762,7 +2870,7 @@ function confirmClear(scope){
     dismissBreak();
     document.getElementById('timer').textContent='00:00:00';
     document.getElementById('tmeta').textContent='\u00a0';
-    document.title='Focus Session Tracker';
+    document.title='Dream Study';
     applyUI('idle');
   }
 
@@ -3162,12 +3270,53 @@ function renderGraphs(){
     gTitle.textContent=graphRange==='weekly'?'Last 7 Days':graphRange==='biweekly'?'Last 14 Days':'This Month';
   }
   const start=new Date(end); start.setDate(end.getDate()-(days-1));
-  const points=[];
-  for(let i=0;i<days;i++){
-    const d=new Date(start); d.setDate(start.getDate()+i);
-    const key=dk(d.getTime());
-    const ms=byDay[key]||0;
-    points.push({date:d,ms});
+  let points=[];
+  if(graphRange==='monthly'){
+    const firstOfMonth=new Date(monthBase.getFullYear(),monthBase.getMonth(),1);
+    const monthEnd=new Date(monthBase.getFullYear(),monthBase.getMonth()+1,0);
+    const dayOffsetToMonday=(firstOfMonth.getDay()+6)%7;
+    const firstWeekMonday=new Date(firstOfMonth);
+    firstWeekMonday.setDate(firstOfMonth.getDate()-dayOffsetToMonday);
+    firstWeekMonday.setHours(0,0,0,0);
+
+    const weekBuckets=[];
+    for(let i=0;i<6;i++){
+      const weekStart=new Date(firstWeekMonday);
+      weekStart.setDate(firstWeekMonday.getDate()+i*7);
+      const weekEnd=new Date(weekStart);
+      weekEnd.setDate(weekStart.getDate()+6);
+      if(weekStart>monthEnd) break;
+      const visibleStart=weekStart<firstOfMonth ? firstOfMonth : weekStart;
+      const visibleEnd=weekEnd>monthEnd ? monthEnd : weekEnd;
+      weekBuckets.push({index:i+1,weekStart:visibleStart,weekEnd:visibleEnd,ms:0});
+    }
+    sessions.forEach(s=>{
+      const d=new Date(s.startTs);
+      if(d.getFullYear()!==monthBase.getFullYear()||d.getMonth()!==monthBase.getMonth()) return;
+      const thisDateMidnight=new Date(d.getFullYear(),d.getMonth(),d.getDate());
+      const msPerDay=24*60*60*1000;
+      const weekIndex=Math.floor((thisDateMidnight-firstWeekMonday)/(7*msPerDay))+1;
+      const bucket=weekBuckets.find(w=>w.index===weekIndex);
+      if(bucket) bucket.ms+=s.duration;
+    });
+    if(ts.status==='running'||ts.status==='paused'){
+      const d=new Date();
+      if(d.getFullYear()===monthBase.getFullYear()&&d.getMonth()===monthBase.getMonth()){
+        const thisDateMidnight=new Date(d.getFullYear(),d.getMonth(),d.getDate());
+        const msPerDay=24*60*60*1000;
+        const weekIndex=Math.floor((thisDateMidnight-firstWeekMonday)/(7*msPerDay))+1;
+        const bucket=weekBuckets.find(w=>w.index===weekIndex);
+        if(bucket) bucket.ms+=elapsed();
+      }
+    }
+    points=weekBuckets.map(w=>({date:w.weekStart,ms:w.ms,label:`W${w.index}`,tooltip:`${w.weekStart.toLocaleDateString(undefined,{month:'short',day:'numeric',year:'numeric'})} – ${w.weekEnd.toLocaleDateString(undefined,{month:'short',day:'numeric',year:'numeric'})}`}));
+  } else {
+    for(let i=0;i<days;i++){
+      const d=new Date(start); d.setDate(start.getDate()+i);
+      const key=dk(d.getTime());
+      const ms=byDay[key]||0;
+      points.push({date:d,ms});
+    }
   }
   const rawMax=Math.max(...points.map(p=>p.ms), 0);
   const maxScale=Math.max(3600000, Math.ceil(rawMax/1800000)*1800000); // 30-min scale steps
@@ -3267,7 +3416,7 @@ function renderGraphs(){
   ctx.font='10px Manrope';
   points.forEach((p,i)=>{
     const x=padX+i*(w/points.length)+bw/2;
-    const lbl=graphRange==='monthly' ? String(p.date.getDate()) : (p.date.toLocaleDateString(undefined,{weekday:'short'}).slice(0,3));
+    const lbl=graphRange==='monthly' ? (p.label||'') : (p.date.toLocaleDateString(undefined,{weekday:'short'}).slice(0,3));
     ctx.fillText(lbl, x-10, canvas.height-24);
   });
 
@@ -3282,6 +3431,19 @@ function renderGraphs(){
 
   if(monthBase){
     document.getElementById('graph-month-label').textContent=monthBase.toLocaleDateString(undefined,{month:'long',year:'numeric'});
+  }
+  if(graphRange==='monthly'){
+    canvas.onmousemove=(e)=>{
+      const r=canvas.getBoundingClientRect();
+      const relX=(e.clientX-r.left)*(canvas.width/r.width);
+      const idx=Math.max(0,Math.min(points.length-1,Math.floor((relX-padX)/(w/points.length))));
+      const p=points[idx];
+      if(!p) return;
+      canvas.title=`${p.label}: ${p.tooltip}`;
+    };
+  } else {
+    canvas.onmousemove=null;
+    canvas.title='';
   }
 }
 
@@ -3418,6 +3580,11 @@ function spawnTaskStars(sourceEl){
     setTimeout(()=>s.remove(), 920);
   }
 }
+
+// Keep Add Hours duration auto-synced with selected start/end time
+document.getElementById('ah-date')?.addEventListener('input',syncManualDuration);
+document.getElementById('ah-start')?.addEventListener('input',syncManualDuration);
+document.getElementById('ah-end')?.addEventListener('input',syncManualDuration);
 
 renderTasks();
 
