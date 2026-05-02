@@ -1627,6 +1627,185 @@
       filter: drop-shadow(0 7px 16px rgba(78, 200, 118, 0.4));
     }
 
+    .mobile-nav {
+      display: none;
+    }
+
+    @media (max-width: 900px) {
+      body::after { display: none; }
+      html, body {
+        height: auto;
+        min-height: 100vh;
+        overflow: auto;
+      }
+      .app {
+        min-height: 100vh;
+        height: auto;
+        grid-template-rows: auto 1fr auto;
+        padding-bottom: env(safe-area-inset-bottom);
+      }
+      .cd-strip {
+        flex-wrap: wrap;
+        justify-content: center;
+        gap: 8px 12px;
+        padding: 10px 8px 12px;
+        border-top: 1px solid rgba(129,211,255,0.18);
+      }
+      .cd-label, .cd-gate-label { margin: 0; padding: 0; }
+      .cd-gate-label { align-items: center; }
+      .cd-num { font-size: 2.1rem; }
+      .main {
+        grid-template-columns: 1fr;
+        min-height: 0;
+      }
+      .v-div, .rp-toggle { display: none; }
+      .left, .right {
+        width: 100%;
+        padding: 10px 12px calc(88px + env(safe-area-inset-bottom));
+        overflow-y: auto;
+        -webkit-overflow-scrolling: touch;
+        overscroll-behavior-y: contain;
+      }
+      .left {
+        display: none;
+        align-items: stretch;
+      }
+      .main-view-switch {
+        width: 100%;
+        margin: 6px 0 10px;
+        padding: 5px;
+      }
+      .main-view-btn {
+        flex: 1;
+        min-height: 42px;
+        font-size: 0.65rem;
+        letter-spacing: 0.11em;
+        padding: 10px 8px;
+      }
+      .main-view.active {
+        justify-content: flex-start;
+        gap: 10px;
+      }
+      .quote-wrap {
+        margin-bottom: 6px;
+        padding: 8px 6px 4px;
+      }
+      .quote-wrap::before {
+        font-size: 3.4rem;
+        top: 2px;
+      }
+      .qt {
+        white-space: normal;
+        overflow: visible;
+        text-overflow: clip;
+        font-size: clamp(0.9rem, 3.6vw, 1rem);
+        line-height: 1.45;
+        max-width: 100%;
+      }
+      .qs {
+        opacity: 0.9;
+        margin-top: 8px;
+        font-size: 0.58rem;
+      }
+      .rule { margin: 2px auto 10px; }
+      .timer-block { margin-top: 4px; }
+      .timer-num {
+        font-size: clamp(2.8rem, 15vw, 4rem);
+        letter-spacing: 0.01em;
+      }
+      .timer-line.on { width: 72%; }
+      .timer-meta {
+        margin: 8px 0 14px;
+        font-size: 0.8rem;
+        min-height: 16px;
+        height: auto;
+      }
+      .btn-row {
+        width: 100%;
+        gap: 8px;
+        flex-wrap: nowrap;
+      }
+      .btn {
+        flex: 1 1 0;
+        min-width: 0;
+        min-height: 44px;
+        padding: 10px 6px;
+        letter-spacing: 0.1em;
+        font-size: 0.68rem;
+        border-radius: 12px;
+      }
+      .btn-stop { opacity: 0.65; }
+      .kb-hint {
+        margin-top: 8px;
+        font-size: 0.62rem;
+      }
+      .site-logo { display: none; }
+      .left, .right, .cd-strip, .main-view-switch, .r-section, .graph-card {
+        max-width: 100vw;
+      }
+      .left { display: none; }
+      .main.mobile-main .left { display: flex; }
+      .main.mobile-overview .right,
+      .main.mobile-log .right,
+      .main.mobile-misc .right { display: flex; }
+      .main.mobile-overview #panel-overview,
+      .main.mobile-log #panel-log,
+      .main.mobile-misc #panel-misc { display: flex; }
+      .main.mobile-overview #panel-log,
+      .main.mobile-overview #panel-misc,
+      .main.mobile-log #panel-overview,
+      .main.mobile-log #panel-misc,
+      .main.mobile-misc #panel-overview,
+      .main.mobile-misc #panel-log { display: none; }
+      .main.mobile-main .right,
+      .main.mobile-main .rp-tabs,
+      .main.mobile-main .brand-credit { display: none; }
+      .main.mobile-overview .rp-tabs,
+      .main.mobile-log .rp-tabs,
+      .main.mobile-misc .rp-tabs { display: none; }
+      .mobile-nav {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        position: fixed;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        z-index: 150;
+        border-top: 1px solid rgba(129,211,255,0.25);
+        background: rgba(8, 12, 28, 0.95);
+        backdrop-filter: blur(12px);
+        box-shadow: 0 -10px 28px rgba(0,0,0,0.35);
+      }
+      .mobile-nav-btn {
+        border: 0;
+        background: transparent;
+        color: var(--text-sub);
+        padding: 12px 6px calc(12px + env(safe-area-inset-bottom));
+        font-size: 0.66rem;
+        font-weight: 800;
+        letter-spacing: 0.13em;
+        text-transform: uppercase;
+        min-height: 52px;
+        touch-action: manipulation;
+      }
+      .mobile-nav-btn.active {
+        color: var(--gold-bright);
+        box-shadow: inset 0 2px 0 var(--gold);
+      }
+      .main, .left, .right, .mobile-nav { overflow-x: clip; }
+      .right .r-section:first-child { margin-top: 2px; }
+      .log-list, .tasks-list {
+        overscroll-behavior: contain;
+      }
+    }
+
+    @media (max-width: 560px) {
+      .btn { min-height: 42px; }
+      .cd-unit { padding: 0 6px; }
+      .cd-num { font-size: 1.7rem; }
+      .cd-label { width: 100%; text-align: center; margin-right: 0; }
+    }
+
   </style>
 </head>
 <body>
@@ -1843,6 +2022,12 @@
     </div>
   </div>
 </div>
+<nav class="mobile-nav" aria-label="Bottom navigation">
+  <button class="mobile-nav-btn active" id="mnav-main" onclick="switchMobileSection('main')">Main</button>
+  <button class="mobile-nav-btn" id="mnav-overview" onclick="switchMobileSection('overview')">Overview</button>
+  <button class="mobile-nav-btn" id="mnav-log" onclick="switchMobileSection('log')">Log</button>
+  <button class="mobile-nav-btn" id="mnav-misc" onclick="switchMobileSection('misc')">Misc</button>
+</nav>
 
 <!-- Export modal -->
 <div class="export-modal" id="export-modal" role="dialog" aria-modal="true" aria-labelledby="exp-modal-title">
@@ -2218,6 +2403,31 @@ function switchMainView(name){
   document.getElementById('main-view-graphs')?.classList.toggle('active',name==='graphs');
   if(name==='graphs') renderGraphs();
 }
+
+let mobileSection='main';
+function switchMobileSection(name){
+  const valid=['main','overview','log','misc'];
+  if(!valid.includes(name)) name='main';
+  mobileSection=name;
+  const main=document.querySelector('.main');
+  if(!main) return;
+  ['mobile-main','mobile-overview','mobile-log','mobile-misc'].forEach(c=>main.classList.remove(c));
+  main.classList.add('mobile-'+name);
+  valid.forEach(id=>{
+    document.getElementById('mnav-'+id)?.classList.toggle('active',id===name);
+  });
+  if(name==='overview'||name==='log'||name==='misc') switchRightPanel(name);
+}
+
+function syncMobileLayout(){
+  if(window.innerWidth<=900){
+    switchMobileSection(mobileSection || 'main');
+  } else {
+    const main=document.querySelector('.main');
+    ['mobile-main','mobile-overview','mobile-log','mobile-misc'].forEach(c=>main?.classList.remove(c));
+  }
+}
+window.addEventListener('resize', syncMobileLayout);
 
 function updateTasksListViewport(){
   const panel=document.getElementById('panel-overview');
@@ -3595,6 +3805,7 @@ document.getElementById('ah-start')?.addEventListener('input',syncManualDuration
 document.getElementById('ah-end')?.addEventListener('input',syncManualDuration);
 
 renderTasks();
+syncMobileLayout();
 
 </script>
 </body>
