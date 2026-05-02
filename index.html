@@ -1333,6 +1333,8 @@
       background: linear-gradient(160deg, rgba(24,34,64,0.86), rgba(15,22,44,0.72));
       border-radius: var(--radius-lg);
       padding: 10px;
+      display: flex;
+      flex-direction: column;
     }
     .tasks-add-wrap {
       display: flex;
@@ -1376,7 +1378,7 @@
       background: linear-gradient(120deg, rgba(69,124,234,0.5), rgba(90,186,255,0.4));
       transform: translateY(-1px);
     }
-    .tasks-list { display: flex; flex-direction: column; gap: 6px; max-height: none; overflow-y: visible; scrollbar-width: thin; scrollbar-color: rgba(129,211,255,0.15) transparent; }
+    .tasks-list { display: flex; flex-direction: column; gap: 6px; max-height: 154px; overflow-y: auto; scrollbar-width: thin; scrollbar-color: rgba(129,211,255,0.15) transparent; }
     .tasks-list::-webkit-scrollbar { width: 3px; }
     .tasks-list::-webkit-scrollbar-thumb { background: rgba(196,162,70,0.14); border-radius: 2px; }
     .task-item {
@@ -1611,8 +1613,8 @@
     }
     .site-logo {
       position: fixed;
-      top: 10px;
-      left: 10px;
+      top: 6px;
+      left: 6px;
       width: clamp(48px, 4.5vw, 72px);
       z-index: 50;
       display: block;
@@ -1754,7 +1756,7 @@
     <div class="right">
       <div class="rp-tabs">
         <button class="rp-tab active" id="tab-overview" onclick="switchRightPanel('overview')">Overview</button>
-        <button class="rp-tab" id="tab-tasks" onclick="switchRightPanel('tasks')">Tasks</button>
+        <button class="rp-tab" id="tab-misc" onclick="switchRightPanel('misc')">MISC</button>
         <button class="rp-tab" id="tab-log" onclick="switchRightPanel('log')">Log</button>
       </div>
 
@@ -1788,24 +1790,11 @@
         </div>
 
         <div class="r-section">
-          <div class="panel-lbl" style="margin-bottom:10px">Miscellaneous</div>
-          <div style="display:flex;gap:6px;flex-wrap:wrap">
-            <button class="action-btn" id="cd-toggle-btn" onclick="toggleCountdownVisibility()">Countdown: On</button>
-            <button class="action-btn" onclick="openCountdownSettings()">Countdown Settings</button>
-            <button class="action-btn" onclick="openAddHours()" title="Manually add a study session">Add Hours</button>
-            <button class="action-btn" onclick="openExport()" title="Export or backup your study data">Export</button>
-            <button class="action-btn action-btn-danger" onclick="openClear()" title="Clear study data">Clear</button>
-          </div>
-        </div>
-      </div>
-
-      <div class="r-panel" id="panel-tasks">
-        <div class="r-section">
           <div class="tasks-hdr">
             <div class="panel-lbl" style="margin-bottom:0">Today&rsquo;s Tasks</div>
             <span class="heat-week-total" id="tasks-count-lbl" style="color:var(--gold-dim)"></span>
           </div>
-          <div class="tasks-shell">
+          <div class="tasks-shell" id="tasks-shell-overview">
             <div class="tasks-add-wrap">
               <input class="tasks-input" id="task-input" type="text" placeholder="What’s the next winning task?" maxlength="80" onkeydown="if(event.key==='Enter')addTask()" />
               <button class="tasks-add-btn" onclick="addTask()">+ Add</button>
@@ -1813,6 +1802,19 @@
             <div class="tasks-list" id="tasks-list">
               <div class="tasks-empty">No tasks yet — add your first win for today.</div>
             </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="r-panel" id="panel-misc">
+        <div class="r-section">
+          <div class="panel-lbl" style="margin-bottom:10px">Miscellaneous</div>
+          <div style="display:flex;gap:6px;flex-wrap:wrap">
+            <button class="action-btn" id="cd-toggle-btn" onclick="toggleCountdownVisibility()">Countdown: On</button>
+            <button class="action-btn" onclick="openCountdownSettings()">Countdown Settings</button>
+            <button class="action-btn" onclick="openAddHours()" title="Manually add a study session">Add Hours</button>
+            <button class="action-btn" onclick="openExport()" title="Export or backup your study data">Export</button>
+            <button class="action-btn action-btn-danger" onclick="openClear()" title="Clear study data">Clear</button>
           </div>
         </div>
       </div>
@@ -2218,8 +2220,8 @@ function switchMainView(name){
 }
 
 function updateTasksListViewport(){
-  const panel=document.getElementById('panel-tasks');
-  const shell=document.querySelector('#panel-tasks .tasks-shell');
+  const panel=document.getElementById('panel-overview');
+  const shell=document.getElementById('tasks-shell-overview');
   const list=document.getElementById('tasks-list');
   if(!panel || !shell || !list) return;
   const panelActive=panel.classList.contains('active');
@@ -2229,7 +2231,12 @@ function updateTasksListViewport(){
     return;
   }
   const available=window.innerHeight - shell.getBoundingClientRect().top - 28;
-  const capped=Math.max(170, Math.min(available, 520));
+  const sampleItem=list.querySelector('.task-item');
+  const itemHeight=sampleItem ? sampleItem.getBoundingClientRect().height : 38;
+  const listStyles=getComputedStyle(list);
+  const rowGap=parseFloat(listStyles.rowGap || listStyles.gap || '6') || 6;
+  const fourTaskCap=Math.round((itemHeight*4)+(rowGap*3));
+  const capped=Math.max(120, Math.min(available, fourTaskCap));
   list.style.maxHeight=capped+'px';
   list.style.overflowY=list.scrollHeight>capped?'auto':'visible';
 }
@@ -2500,6 +2507,7 @@ function formatSessionRangeLabel(session,range){
   if(range==='today') return base;
   const d=new Date(session.startTs);
   const monthYear=d.toLocaleDateString(undefined,{month:'short',year:'numeric'});
+  const dayOfMonth=d.getDate();
   const firstOfMonth=new Date(d.getFullYear(),d.getMonth(),1);
   const dayOffsetToMonday=(firstOfMonth.getDay()+6)%7;
   const firstWeekMonday=new Date(firstOfMonth);
@@ -2523,7 +2531,7 @@ function formatSessionRangeLabel(session,range){
   const weekStart=visibleStart.toLocaleDateString(undefined,{month:'short',day:'numeric',year:'numeric'});
   const weekEnd=visibleEnd.toLocaleDateString(undefined,{month:'short',day:'numeric',year:'numeric'});
   const weekBadge=`<span title="${weekStart} – ${weekEnd}">W${weekOfMonth}</span>`;
-  return `${base} (${monthYear}, ${weekBadge})`;
+  return `${base} (${dayOfMonth} ${monthYear}, ${weekBadge})`;
 }
 
 function renderLog(){
