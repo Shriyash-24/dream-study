@@ -1735,6 +1735,17 @@
         border-radius: 12px;
       }
       .btn-stop { opacity: 0.65; }
+      .sess-card {
+        margin-top: 12px;
+        padding: 12px 10px;
+        max-width: 100%;
+      }
+      .sc-dur { font-size: 1.35rem; }
+      .sc-body {
+        font-size: 0.62rem;
+        letter-spacing: 0.08em;
+        word-break: break-word;
+      }
       .kb-hint {
         margin-top: 8px;
         font-size: 0.62rem;
@@ -2597,7 +2608,11 @@ function timerStop(){
   document.getElementById('sc-dur').textContent=fmtDur(dur);
   document.getElementById('sc-body').textContent=
     fmtT(startTs)+'\u2009→\u2009'+fmtT(endTs);
-  document.getElementById('scard').classList.add('show');
+  const scard=document.getElementById('scard');
+  scard.classList.add('show');
+  if(window.matchMedia('(max-width: 980px)').matches){
+    requestAnimationFrame(()=>scard.scrollIntoView({behavior:'smooth',block:'nearest'}));
+  }
 
   // Only persist sessions longer than 30 seconds (avoids accidental clicks)
   if(dur>=30000){
