@@ -1,0 +1,368 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Dream Study</title>
+  <link rel="icon" type="image/svg+xml" href="favicon.svg" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@300;400;500;600&display=swap" rel="stylesheet" />
+
+    <link rel="stylesheet" href="styles.css" />
+
+
+</head>
+<body>
+<canvas id="star-canvas" style="position:fixed;inset:0;width:100%;height:100%;pointer-events:none;z-index:0;"></canvas>
+<div class="app">
+  <!-- ── COUNTDOWN STRIP: full-width, prominent ────────────── -->
+  <!--
+    Moved out of the header into its own dedicated row.
+    Bigger numbers = immediate awareness of urgency.
+    Reason: when you're studying for 10+ hours, glancing up should
+    immediately show you how much runway is left.
+  -->
+  <div class="cd-strip">
+    <a class="site-logo" href="https://shriyash-24.github.io/dream-study/" aria-label="Open Dream Study website">
+      <img src="logo.svg" alt="Dream Study logo" />
+    </a>
+    <span class="cd-label" id="cd-label">Time to <span id="cd-label-name">Your Goal</span></span>
+    <div class="cd-units">
+      <div class="cd-unit">
+        <span class="cd-num" id="cd-d">---</span>
+        <span class="cd-lbl">Days</span>
+      </div>
+      <span class="cd-sep">:</span>
+      <div class="cd-unit">
+        <span class="cd-num" id="cd-h">--</span>
+        <span class="cd-lbl">Hours</span>
+      </div>
+      <span class="cd-sep">:</span>
+      <div class="cd-unit">
+        <span class="cd-num" id="cd-m">--</span>
+        <span class="cd-lbl">Min</span>
+      </div>
+      <span class="cd-sep">:</span>
+      <div class="cd-unit">
+        <span class="cd-num" id="cd-s">--</span>
+        <span class="cd-lbl">Sec</span>
+      </div>
+    </div>
+    <div class="cd-gate-label">
+      <span class="cd-gate-title" id="cd-target-title">No date set</span>
+      <span class="cd-gate-date" id="cd-target-date">Configure your countdown</span>
+    </div>
+  </div>
+
+  <!-- ── MAIN: timer (left) · divider · study log (right) ─── -->
+  <div class="main">
+
+    <!-- Left: Quote + Timer + Controls -->
+    <div class="left">
+      <div class="main-view-switch">
+        <button class="main-view-btn active" id="main-btn-timer" onclick="switchMainView('timer')">Timer</button>
+        <button class="main-view-btn" id="main-btn-graphs" onclick="switchMainView('graphs')">Graphs</button>
+      </div>
+
+      <div class="main-view active" id="main-view-timer">
+        <div class="quote-wrap">
+          <p class="qt" id="qt"></p>
+          <span class="qs" id="qs"></span>
+        </div>
+
+        <div class="rule"></div>
+
+        <div class="timer-block">
+          <div class="timer-num" id="timer">00:00:00</div>
+          <div class="timer-line" id="tline"></div>
+        </div>
+
+        <div class="timer-meta" id="tmeta">&nbsp;</div>
+
+        <div class="btn-row">
+          <button class="btn btn-start" id="b-start" onclick="timerStart()" title="Start a new study session">Start</button>
+          <button class="btn btn-pause" id="b-pause" onclick="timerPause()" disabled title="Pause or resume the current session">Pause</button>
+          <button class="btn btn-stop"  id="b-stop"  onclick="timerStop()"  disabled title="End session and save to log">Stop</button>
+        </div>
+
+        <div class="kb-hint">
+          <kbd>Space</kbd> &nbsp;Start / Pause &nbsp;&nbsp; <kbd>Esc</kbd> &nbsp;Stop
+        </div>
+
+
+        <div class="sess-card" id="scard">
+          <div class="sc-lbl">Session Complete · Great Work</div>
+          <div class="sc-dur"  id="sc-dur"></div>
+          <div class="sc-dur-label">studied this session</div>
+          <div class="sc-body" id="sc-body"></div>
+        </div>
+      </div>
+
+      <div class="main-view" id="main-view-graphs">
+        <div class="graph-view">
+          <div class="graph-controls">
+            <button class="action-btn" id="graph-range-7" onclick="setGraphRange('weekly')">Weekly</button>
+            <button class="action-btn" id="graph-range-14" onclick="setGraphRange('biweekly')">Bi-Weekly</button>
+            <button class="action-btn" id="graph-range-month" onclick="setGraphRange('monthly')">Monthly</button>
+          </div>
+          <div class="graph-month-nav" id="graph-month-nav">
+            <button class="action-btn" onclick="changeGraphMonth(-1)">Prev Month</button>
+            <span class="graph-month-label" id="graph-month-label"></span>
+            <button class="action-btn" onclick="changeGraphMonth(1)">Next Month</button>
+          </div>
+          <div class="graph-card">
+            <div class="graph-card-top">
+              <div class="graph-card-title" id="graph-title">Last 7 Days</div>
+              <div class="graph-mini-switch">
+                <button class="graph-mini-btn" id="graph-style-bar" onclick="setGraphStyle('bar')">Bar</button>
+                <button class="graph-mini-btn" id="graph-style-line" onclick="setGraphStyle('line')">Line</button>
+                <button class="graph-mini-btn" id="graph-style-area" onclick="setGraphStyle('area')">Area</button>
+              </div>
+            </div>
+            <div class="graph-canvas-wrap">
+              <canvas id="graph-canvas"></canvas>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="v-div"></div>
+    <button class="rp-toggle" id="rp-toggle" onclick="toggleRightPanel()" title="Hide/Show side panel">❯</button>
+
+    <!-- Right: Study Log -->
+    <div class="right">
+      <div class="rp-tabs">
+        <button class="rp-tab active" id="tab-overview" onclick="switchRightPanel('overview')">Overview</button>
+        <button class="rp-tab" id="tab-tasks" onclick="switchRightPanel('tasks')">Tasks</button>
+        <button class="rp-tab" id="tab-log" onclick="switchRightPanel('log')">Log</button>
+        <button class="rp-tab" id="tab-misc" onclick="switchRightPanel('misc')">MISC</button>
+      </div>
+
+      <div class="r-panel active" id="panel-overview">
+        <div class="r-section tight">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px"><div class="r-section-title" style="margin-bottom:0">Right Now</div><button class="icon-btn" onclick="openDaySettings()" title="Configure your day">⚙</button></div>
+          <div class="now-wrap" id="now-wrap">
+            <div class="now-top">
+              <span class="now-label" id="now-label">Loading…</span>
+            </div>
+            <div class="now-block-name" id="now-block-name">—</div>
+            <div class="now-bottom">
+              <span class="now-time-left" id="now-time-left">—</span>
+              <span class="now-next" id="now-next"></span>
+            </div>
+            <div class="now-progress"><div class="now-progress-fill" id="now-progress-fill" style="width:0%"></div></div>
+          </div>
+        </div>
+
+        <div class="r-section">
+          <div class="panel-lbl" style="margin-bottom:10px">Statistics</div>
+          <div class="stats">
+            <div class="scard"><span class="sl">Today</span><span class="sv" id="s-today">0h 0m</span></div>
+            <div class="scard"><span class="sl">This Week</span><span class="sv" id="s-week">0h 0m</span></div>
+            <div class="scard"><span class="sl">This Month</span><span class="sv" id="s-month">0h 0m</span></div>
+            <div class="scard"><span class="sl">Daily Avg</span><span class="sv" id="s-avg">0h 0m</span></div>
+            <div class="scard"><span class="sl">Streak</span><span class="sv" id="s-streak">0 days</span></div>
+            <div class="scard"><span class="sl">All-Time</span><span class="sv" id="s-alltime">0h 0m</span></div>
+            <div class="scard"><span class="sl">Tasks Today</span><span class="sv" id="s-tasks">0 / 0</span></div>
+          </div>
+        </div>
+
+      </div>
+
+      <div class="r-panel" id="panel-tasks">
+        <div class="r-section">
+          <div class="tasks-hdr">
+            <div class="panel-lbl" style="margin-bottom:0">Today&rsquo;s Tasks</div>
+            <span class="heat-week-total" id="tasks-count-lbl" style="color:var(--gold-dim)"></span>
+          </div>
+          <div class="tasks-shell" id="tasks-shell">
+            <div class="tasks-add-wrap">
+              <input class="tasks-input" id="task-input" type="text" placeholder="What’s the next winning task?" maxlength="80" onkeydown="if(event.key==='Enter')addTask()" />
+              <button class="tasks-add-btn" onclick="addTask()">+ Add</button>
+            </div>
+            <div class="tasks-list" id="tasks-list">
+              <div class="tasks-empty">No tasks yet — add your first win for today.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="r-panel" id="panel-misc">
+        <div class="r-section">
+          <div class="panel-lbl" style="margin-bottom:10px">Miscellaneous</div>
+          <div class="misc-actions">
+            <button class="action-btn" id="cd-toggle-btn" onclick="toggleCountdownVisibility()">Countdown: On</button>
+            <button class="action-btn" onclick="openCountdownSettings()">Countdown Settings</button>
+            <button class="action-btn" onclick="openAddHours()" title="Manually add a study session">Add Hours</button>
+            <button class="action-btn" onclick="openExport()" title="Export or backup your study data">Export</button>
+            <button class="action-btn action-btn-danger" onclick="openClear()" title="Clear study data">Clear</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="r-panel" id="panel-log">
+        <div class="r-section">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+            <div class="panel-lbl" style="margin-bottom:0">Study Log</div>
+            <div class="graph-mini-switch">
+              <button class="graph-mini-btn active" id="log-range-today" onclick="setLogRange('today')">Today</button>
+              <button class="graph-mini-btn" id="log-range-week" onclick="setLogRange('week')">Week</button>
+              <button class="graph-mini-btn" id="log-range-month" onclick="setLogRange('month')">Month</button>
+            </div>
+          </div>
+          <div class="log-hdr" id="log-hdr">Today&rsquo;s Sessions</div>
+          <div class="log-list" id="log-list">
+            <div class="log-empty">No sessions yet.<br>Start your first focused session.</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="brand-credit">
+        Dream Study · Created by Shriyash Patil with ❤️ · <a href="https://github.com/Shriyash-24" target="_blank" rel="noopener noreferrer">github.com/Shriyash-24</a>
+      </div>
+
+    </div>
+  </div>
+</div>
+<nav class="mobile-nav" aria-label="Bottom navigation">
+  <button class="mobile-nav-btn active" id="mnav-main" onclick="switchMobileSection('main')">Main</button>
+  <button class="mobile-nav-btn" id="mnav-graphs" onclick="switchMobileSection('graphs')">Graphs</button>
+  <button class="mobile-nav-btn" id="mnav-overview" onclick="switchMobileSection('overview')">Overview</button>
+  <button class="mobile-nav-btn" id="mnav-tasks" onclick="switchMobileSection('tasks')">Tasks</button>
+  <button class="mobile-nav-btn" id="mnav-log" onclick="switchMobileSection('log')">Log</button>
+  <button class="mobile-nav-btn" id="mnav-misc" onclick="switchMobileSection('misc')">Misc</button>
+</nav>
+
+<!-- Export modal -->
+<div class="export-modal" id="export-modal" role="dialog" aria-modal="true" aria-labelledby="exp-modal-title">
+  <div class="export-box">
+    <div class="exp-title" id="exp-modal-title">Export Study Data</div>
+    <div class="exp-sub" id="exp-sub">Loading…</div>
+    <div class="exp-stats" id="exp-stats"></div>
+    <div class="exp-row">
+      <button class="exp-option" onclick="exportCSV()">
+        <div class="exp-option-title">📊 Download as CSV</div>
+        <div class="exp-option-desc">Opens in Excel, Google Sheets. One row per session with date, start time, end time, and duration. Best for analysis.</div>
+      </button>
+      <button class="exp-option" onclick="exportJSON()">
+        <div class="exp-option-title">💾 Download as JSON</div>
+        <div class="exp-option-desc">Full data backup. Can be restored later. Keep this safe — it's your complete study history.</div>
+      </button>
+      <button class="exp-option" onclick="copyText()">
+        <div class="exp-option-title" id="copy-btn-title">📋 Copy Summary Text</div>
+        <div class="exp-option-desc">Copies a clean plain-text summary — total time, streak, daily average — to your clipboard.</div>
+      </button>
+    </div>
+    <button class="exp-close" onclick="closeExport()">Close</button>
+  </div>
+</div>
+
+<!-- Clear Data modal -->
+<div class="export-modal" id="clear-modal" role="dialog" aria-modal="true" aria-labelledby="clear-modal-title">
+  <div class="export-box">
+    <div class="exp-title" id="clear-modal-title">Clear Study Data</div>
+    <div class="exp-sub">Permanently removes sessions from storage. Export a backup first if needed.</div>
+    <div class="exp-row">
+      <button class="exp-option danger" onclick="confirmClear('today')">
+        <div class="exp-option-title">Clear Today</div>
+        <div class="exp-option-desc">Removes only today's saved sessions. Useful after a power cut ruined your day's data.</div>
+      </button>
+      <button class="exp-option danger" onclick="confirmClear('week')">
+        <div class="exp-option-title">Clear This Week</div>
+        <div class="exp-option-desc">Removes all sessions from the current Mon–Sun week.</div>
+      </button>
+      <button class="exp-option danger" onclick="confirmClear('month')">
+        <div class="exp-option-title">Clear This Month</div>
+        <div class="exp-option-desc">Removes all sessions from the current calendar month.</div>
+      </button>
+      <button class="exp-option danger" onclick="confirmClear('all')">
+        <div class="exp-option-title">Clear All Data</div>
+        <div class="exp-option-desc">Permanently deletes all session history. Download a backup first. Cannot be undone.</div>
+      </button>
+    </div>
+    <button class="exp-close" onclick="closeClear()">Cancel</button>
+  </div>
+</div>
+
+<!-- Add Hours modal — for manual session entry -->
+<div class="add-hours-modal" id="add-hours-modal" role="dialog" aria-modal="true" aria-labelledby="ah-modal-title">
+  <div class="add-hours-box">
+    <div class="exp-title" id="ah-modal-title">Add Study Hours</div>
+    <div class="exp-sub" style="margin-bottom:18px">Manually log time you studied without the timer — e.g. studying on paper, offline, or another device.</div>
+    <div class="ah-field">
+      <label class="ah-label" for="ah-date">Date</label>
+      <input class="ah-input" type="date" id="ah-date" />
+    </div>
+    <div class="ah-row">
+      <div class="ah-field">
+        <label class="ah-label" for="ah-start">Start Time</label>
+        <input class="ah-input" type="time" id="ah-start" value="09:00" />
+      </div>
+      <div class="ah-field">
+        <label class="ah-label" for="ah-end">End Time</label>
+        <input class="ah-input" type="time" id="ah-end" value="10:00" />
+      </div>
+    </div>
+    <div class="ah-row">
+      <div class="ah-field">
+        <label class="ah-label" for="ah-hours">Duration Hours</label>
+        <input class="ah-input" type="number" id="ah-hours" min="0" max="23" value="1" readonly />
+      </div>
+      <div class="ah-field">
+        <label class="ah-label" for="ah-minutes">Duration Minutes</label>
+        <input class="ah-input" type="number" id="ah-minutes" min="0" max="59" value="0" readonly />
+      </div>
+    </div>
+    <button class="ah-submit" onclick="saveManualHours()">Save Session</button>
+    <button class="exp-close" onclick="closeAddHours()">Cancel</button>
+  </div>
+</div>
+
+
+
+<div class="export-modal" id="countdown-settings-modal" role="dialog" aria-modal="true" aria-labelledby="countdown-settings-title">
+  <div class="export-box">
+    <div class="exp-title" id="countdown-settings-title">Countdown Settings</div>
+    <div class="exp-sub" style="margin-bottom:18px">Choose a countdown name and target date.</div>
+    <div class="ah-field">
+      <label class="ah-label" for="cd-name-input">Countdown Name</label>
+      <input class="ah-input" type="text" id="cd-name-input" maxlength="28" placeholder="Exam, launch, goal..." />
+    </div>
+    <div class="ah-field">
+      <label class="ah-label" for="cd-date-input">Countdown Date</label>
+      <input class="ah-input" type="date" id="cd-date-input" />
+    </div>
+    <button class="ah-submit" onclick="saveCountdownSettings()">Save Settings</button>
+    <button class="exp-close" onclick="closeCountdownSettings()">Cancel</button>
+  </div>
+</div>
+
+<div class="export-modal" id="day-settings-modal" role="dialog" aria-modal="true" aria-labelledby="day-settings-title">
+  <div class="export-box">
+    <div class="exp-title" id="day-settings-title">Configure Day</div>
+    <div class="exp-sub" style="margin-bottom:18px">Define blocks as start time, end time, and activity.</div>
+    <div id="day-plan-fields" class="exp-row" style="margin-bottom:14px"></div>
+    <button class="exp-option day-add-btn" onclick="addDayPlanRow()">+ Add Block</button>
+    <button class="ah-submit" style="margin-top:10px" onclick="saveDaySettings()">Save Day Plan</button>
+    <button class="exp-close" onclick="closeDaySettings()">Cancel</button>
+  </div>
+</div>
+
+<!-- Break reminder toast — fires after 90 min of continuous study -->
+<div class="break-toast" id="break-toast" role="alert" aria-live="polite">
+  <div class="bt-icon">🌸</div>
+  <div class="bt-title">90 Minutes — Take a Short Break</div>
+  <div class="bt-msg">"Take a short pause now, so your next session stays sharp."<br><span style="font-size:0.62rem;color:var(--gold-dim);font-style:normal;letter-spacing:0.1em">— Focus Reminder</span></div>
+  <button class="bt-dismiss" onclick="dismissBreak()">Dismiss &nbsp;·&nbsp; Continue Studying</button>
+</div>
+
+
+<div class="save-confirm-toast" id="settings-save-toast" role="status" aria-live="polite">Settings Saved</div>
+
+
+  <script src="script.js"></script>
+
+</body>
+</html>

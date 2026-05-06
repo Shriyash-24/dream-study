@@ -1,0 +1,17 @@
+<svg width="160" height="160" viewBox="0 0 160 160" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bookGradient" x1="18" y1="120" x2="124" y2="50" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#3388E6"/>
+      <stop offset="1" stop-color="#35CAA6"/>
+    </linearGradient>
+  </defs>
+
+  <circle cx="80" cy="34" r="18" fill="#2E93D8"/>
+
+  <path
+    d="M22 66C22 60.4772 26.4772 56 32 56H61.5C69.2 56 76.7 58.1 83 62C89.3 58.1 96.8 56 104.5 56H126C131.523 56 136 60.4772 136 66V107C136 112.523 131.523 117 126 117H104.5C96.8 117 89.3 119.1 83 123C76.7 119.1 69.2 117 61.5 117H32C26.4772 117 22 112.523 22 107V66Z"
+    fill="url(#bookGradient)"
+  />
+
+  <path d="M83 70C89.2 66.9 96.2 65 104 65H124V106H104C96.2 106 89.2 107.9 83 111V70Z" fill="#0F2432" fill-opacity="0.58"/>
+</svg>
