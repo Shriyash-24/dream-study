@@ -1659,7 +1659,7 @@
     .site-logo {
       position: absolute;
       left: 14px;
-      top: 50%;
+      top: calc(50% + 3px);
       transform: translateY(-50%);
       width: clamp(42px, 4.2vw, 64px);
       z-index: 2;
