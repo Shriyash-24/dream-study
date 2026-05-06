@@ -1,16 +1,9 @@
-/*
-  Dream Study App Script
-  - Keeps all UI behavior in one place after splitting from index.html
-  - Sections are ordered from config/state utilities -> feature modules -> startup
-*/
-
-/* ─── CONSTANTS ───────────────────────────────────────────────── */
 const KEY_TIMER    = 'focus_timer_v1';
 const KEY_SESSIONS = 'focus_sessions_v1';
 const KEY_CONFIG   = 'focus_config_v1';
 const KEY_DAY_PLAN = 'focus_day_plan_v1';
 
-/* ─── QUOTES ──────────────────────────────────────────────────── */
+/* Quotes */
 const QUOTES = [
   {t:'The secret of getting ahead is getting started.',s:'Mark Twain'},
   {t:'Success is the sum of small efforts, repeated day in and day out.',s:'Robert Collier'},
@@ -171,6 +164,7 @@ function applyCountdownVisibility(){
   const app=document.querySelector('.app');
   const on=appConfig.countdownEnabled!==false;
   app?.classList.toggle('no-countdown',!on);
+  document.documentElement.classList.remove('preload-no-countdown');
   const btn=document.getElementById('cd-toggle-btn');
   if(btn) btn.textContent='Countdown: '+(on?'On':'Off');
 }
